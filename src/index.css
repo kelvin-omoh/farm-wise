@@ -1,0 +1,56 @@
+@import url('https://fonts.cdnfonts.com/css/ivy-mode');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: 'IvyMode', serif;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-white hover:bg-primary-dark transition-colors;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary text-primary hover:bg-secondary-dark transition-colors;
+  }
+
+  .card-hover {
+    @apply hover:shadow-xl transition-all duration-300 hover:-translate-y-1;
+  }
+
+  .heading-1 {
+    @apply font-ivy text-6xl font-bold leading-tight;
+  }
+
+  .heading-2 {
+    @apply font-ivy text-4xl font-bold leading-tight;
+  }
+
+  .heading-3 {
+    @apply font-ivy text-2xl font-bold leading-tight;
+  }
+}
+
+@keyframes scan {
+  0% {
+    top: 0;
+  }
+
+  50% {
+    top: 100%;
+  }
+
+  100% {
+    top: 0;
+  }
+}

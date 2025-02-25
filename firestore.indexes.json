@@ -1,0 +1,93 @@
+{
+    "indexes": [
+        {
+            "collectionGroup": "sensor_readings",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "farm_id",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "timestamp",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "weather_data",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "farm_id",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "timestamp",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "financial_data",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "farm_id",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "date",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "tasks",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "farm_id",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "due_date",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "alerts",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "farm_id",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "created_at",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "devices",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "farm_id",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                }
+            ]
+        }
+    ],
+    "fieldOverrides": []
+}
