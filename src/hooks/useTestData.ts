@@ -1,7 +1,10 @@
 import { useEffect, useState, useRef } from 'react'
 import { useTestDataStore } from '../stores/testDataStore'
 
-export function useTestData<T>(testData: T, liveDataFetcher: () => Promise<T>) {
+export function useTestData<T>(
+    testData: T,
+    fetchRealData: () => Promise<T>
+): { data: T; loading: boolean; error: Error | null } {
     const { useTestData } = useTestDataStore()
     const [data, setData] = useState<T>(testData)
     const [loading, setLoading] = useState(false)
@@ -20,15 +23,15 @@ export function useTestData<T>(testData: T, liveDataFetcher: () => Promise<T>) {
         }
 
         // Otherwise fetch live data
-        const fetchData = async () => {
+        const loadData = async () => {
             // Prevent fetching if we've already errored to avoid infinite loops
             if (hasErrored.current) return
 
             try {
                 setLoading(true)
-                const result = await liveDataFetcher()
+                const realData = await fetchRealData()
                 if (isMounted.current) {
-                    setData(result)
+                    setData(realData)
                     setError(null)
                 }
             } catch (err) {
@@ -59,14 +62,14 @@ export function useTestData<T>(testData: T, liveDataFetcher: () => Promise<T>) {
             }
         }
 
-        fetchData()
+        loadData()
 
         // Listen for global test data changes
         const handleTestDataChange = () => {
             if (useTestData) {
                 setData(testData)
             } else if (!hasErrored.current) {
-                fetchData()
+                loadData()
             }
         }
 
@@ -76,7 +79,7 @@ export function useTestData<T>(testData: T, liveDataFetcher: () => Promise<T>) {
             isMounted.current = false
             window.removeEventListener('testdatachange', handleTestDataChange)
         }
-    }, [useTestData, testData])  // Remove liveDataFetcher from dependencies
+    }, [useTestData, testData])  // Remove fetchRealData from dependencies
 
     return { data, loading, error }
 }

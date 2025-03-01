@@ -1,14 +1,13 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import {
-    FaTachometerAlt, FaShoppingCart, FaUsers, FaComments,
-    FaCalendarAlt, FaChartBar, FaWrench, FaCloudSun,
+    FaTachometerAlt, FaShoppingCart, FaUsers, FaChartBar, FaWrench, FaCloudSun,
     FaClipboardList, FaLayerGroup, FaCog, FaSignOutAlt,
     FaLeaf
 } from 'react-icons/fa'
-import { Switch } from './ui/Switch'
-import { useState } from 'react'
-import { TestDataToggle } from './TestDataToggle'
+// import { Switch } from './ui/Switch'
+// import { useState } from 'react'
+// import { TestDataToggle } from './TestDataToggle'
 
 const navItems = [
     { id: 'overview', label: 'Overview', icon: FaTachometerAlt, path: '/dashboard' },
@@ -53,10 +52,7 @@ const Sidebar = () => {
                 </div>
 
                 {/* Data source toggle */}
-                <div className="mt-4 flex items-center justify-between">
-                    <span className="text-xs text-gray-500">Data Source</span>
-                    <TestDataToggle />
-                </div>
+
             </div>
 
             {/* Navigation */}

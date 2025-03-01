@@ -34,12 +34,12 @@ const alerts: Alert[] = [
     }
 ]
 
-interface AlertNotificationsProps {
-    useTestData?: boolean;
-    farmId?: string | null;
-}
+// interface AlertNotificationsProps {
+//     useTestData?: boolean;
+//     farmId?: string | null;
+// }
 
-export const AlertNotifications = ({ useTestData = true }: AlertNotificationsProps) => {
+export const AlertNotifications = () => {
     const [showAll, setShowAll] = useState(false)
     const [notifications, setNotifications] = useState(alerts)
 
@@ -79,7 +79,7 @@ export const AlertNotifications = ({ useTestData = true }: AlertNotificationsPro
                 <AnimatePresence>
                     {notifications
                         .filter(alert => showAll || !alert.read)
-                        .map((alert, index) => (
+                        .map((alert) => (
                             <motion.div
                                 key={alert.id}
                                 initial={{ opacity: 0, y: 20 }}

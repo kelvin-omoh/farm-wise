@@ -3,16 +3,17 @@ import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// Firebase configuration from environment variables
 const firebaseConfig = {
-    apiKey: "AIzaSyA2KC4qaZEUsUIIb32gzkw382qWXGfZAL8",
-    authDomain: "farm-wise-64612.firebaseapp.com",
-    projectId: "farm-wise-64612",
-    storageBucket: "farm-wise-64612.firebasestorage.app",
-    messagingSenderId: "481097463440",
-    appId: "1:481097463440:web:70ce0bd6fd07febc5a8a15"
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID,
+    measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase
@@ -20,12 +21,13 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 // Test Firebase connection
 export const testFirebaseConnection = async () => {
     try {
         // Simple test to check if we can access Firestore
-        const authInstance = getAuth();
+        // const authInstance = getAuth();
         return {
             success: true,
             message: "Firebase connection successful"
@@ -38,4 +40,4 @@ export const testFirebaseConnection = async () => {
     }
 };
 
-export { app, auth, db, analytics }; 
+export { app, auth, db, analytics, storage }; 

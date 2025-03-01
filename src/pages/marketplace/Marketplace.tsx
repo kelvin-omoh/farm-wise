@@ -1,29 +1,42 @@
-import { useState } from 'react'
-import { motion } from 'framer-motion'
-import { FaSearch, FaFilter } from 'react-icons/fa'
+import { useState, useEffect } from 'react'
+import { FaSearch, FaFilter, FaPlus } from 'react-icons/fa'
 import ProductCard from './ProductCard'
 import FilterSidebar from './FilterSidebar'
+import { getProducts, addProduct } from '../../services/productService'
+import { Product } from './ProductCard'
 
 const Marketplace = () => {
     const [showFilters, setShowFilters] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
+    const [products, setProducts] = useState<Product[]>([])
 
-    // Mock data - replace with real data from API
-    const products = [
-        {
-            id: '1',
-            name: 'Fresh Tomatoes',
-            description: 'Organically grown tomatoes from Lagos State',
-            price: 1500,
+    // Fetch products from Firestore
+    useEffect(() => {
+        const fetchProducts = async () => {
+            const fetchedProducts = await getProducts()
+            setProducts(fetchedProducts)
+        }
+
+        fetchProducts()
+    }, [])
+
+    // Add a new product (example)
+    const handleAddProduct = async () => {
+        const newProduct: Product = {
+            id: '', // Firebase will auto-generate this
+            name: 'Fresh Carrots',
+            description: 'Locally sourced organic carrots',
+            price: 1200,
             unit: 'kg',
-            image: '/images/products/tomatoes.jpg',
+            image: '/images/products/carrots.jpg',
             farmer: {
-                name: 'John Doe',
-                rating: 4.5
+                name: 'Jane Doe',
+                rating: 4.8
             }
-        },
-        // Add more mock products...
-    ]
+        }
+        const docRef = await addProduct(newProduct)
+        setProducts([...products, { ...newProduct, id: docRef.id }]) // Update local state with generated id
+    }
 
     return (
         <div className="min-h-screen bg-base-200">
@@ -43,6 +56,12 @@ const Marketplace = () => {
                         </div>
                         <button
                             className="btn btn-primary"
+                            onClick={handleAddProduct} // Add product on button click
+                        >
+                            <FaPlus className="mr-2" /> Add Product
+                        </button>
+                        <button
+                            className="btn btn-outline"
                             onClick={() => setShowFilters(!showFilters)}
                         >
                             <FaFilter className="mr-2" /> Filters

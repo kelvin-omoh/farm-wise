@@ -1,43 +1,37 @@
-import { supabase } from '../config/supabase'
-import { User, UserRole } from '../types'
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth'
+import { doc, setDoc } from 'firebase/firestore'
+import { db } from '../config/firebase'
+import { UserRole } from '../types'
+
+const auth = getAuth()
 
 export const authService = {
     async login(email: string, password: string) {
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password
-        })
-        if (error) throw error
-        return data
+        const userCredential = await signInWithEmailAndPassword(auth, email, password)
+        return { session: { user: userCredential.user } }
     },
 
     async register(email: string, password: string, metadata: { name: string; role: UserRole }) {
-        const { data, error } = await supabase.auth.signUp({
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+
+        // Store additional user data in Firestore
+        await setDoc(doc(db, 'users', userCredential.user.uid), {
             email,
-            password,
-            options: {
-                data: metadata,
-                emailRedirectTo: `${window.location.origin}/auth/callback`
-            }
+            name: metadata.name,
+            role: metadata.role,
+            created_at: new Date()
         })
-        if (error) throw error
-        return data
+
+        return { user: userCredential.user }
     },
 
     async logout() {
-        const { error } = await supabase.auth.signOut()
-        if (error) throw error
-    },
-
-    async getCurrentUser() {
-        const { data: { user } } = await supabase.auth.getUser()
-        return user
+        await signOut(auth)
     },
 
     async resetPassword(email: string) {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/auth/reset-password`
+        await sendPasswordResetEmail(auth, email, {
+            url: `${window.location.origin}/auth/reset-password`
         })
-        if (error) throw error
     }
-} 
+}

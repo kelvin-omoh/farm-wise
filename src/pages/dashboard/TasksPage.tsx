@@ -1,12 +1,28 @@
 import { useState, useEffect } from 'react'
-import { TaskManagement } from '../../components/dashboard/TaskManagement'
+// import { TaskManagement } from '../../components/dashboard/TaskManagement'
 import { CropCalendar } from '../../components/dashboard/CropCalendar'
 import { Switch } from '../../components/ui/Switch'
 import { FaPlus, FaFilter, FaSort, FaCheck, FaClock, FaExclamationTriangle, FaTimes } from 'react-icons/fa'
 import { useAuthStore } from '../../stores/authStore'
-import { useTestData } from '../../hooks/useTestData'
-import { getTasks, addTask, updateTask, deleteTask, Task, subscribeToTasks } from '../../services/firebaseService'
+// import { useTestData } from '../../hooks/useTestData'
+import {  addTask, updateTask, deleteTask, Task, subscribeToTasks } from '../../services/firebaseService'
 import { Timestamp } from 'firebase/firestore'
+import { Calendar, momentLocalizer } from 'react-big-calendar'
+import moment from 'moment'
+import 'react-big-calendar/lib/css/react-big-calendar.css'
+
+const localizer = momentLocalizer(moment)
+
+// Add this interface near the top of your file
+interface CalendarEvent {
+    id: string;
+    title: string;
+    start: Date;
+    end: Date;
+    allDay: boolean;
+    status?: 'pending' | 'completed' | 'overdue';
+    priority?: 'low' | 'medium' | 'high';
+}
 
 const TasksPage = () => {
     const [useLocalTestData, setUseLocalTestData] = useState(false)
@@ -27,6 +43,7 @@ const TasksPage = () => {
         pending: 0,
         overdue: 0
     })
+    const [calendarView, _] = useState(false)
 
     const { user } = useAuthStore()
     const farmId = user?.farm_id || 'default'
@@ -206,8 +223,21 @@ const TasksPage = () => {
             }
         } catch (error) {
             console.error('Error updating task:', error);
-            // If the error is about a missing document, it might be a test ID
 
+            // Handle the specific error case for missing documents
+            if (typeof error === 'object' && error !== null && 'message' in error) {
+                const errorMessage = error.message as string;
+                if (errorMessage.includes('No document to update')) {
+                    // Just update the local state for test IDs
+                    setTasks(tasks.map(task =>
+                        task.id === taskId ? { ...task, status: newStatus } : task
+                    ));
+                    return;
+                }
+            }
+
+            // Show error message for other errors
+            alert('Failed to update task. Please try again.');
         }
     };
 
@@ -226,6 +256,23 @@ const TasksPage = () => {
             console.error('Error deleting task:', error)
             alert('Failed to delete task. Please try again.')
         }
+    }
+
+    // Convert tasks to calendar events
+    const getCalendarEvents = () => {
+        return tasks.map(task => ({
+            id: task.id,
+            title: task.title,
+            start: task.due_date instanceof Timestamp
+                ? task.due_date.toDate()
+                : new Date(task.due_date),
+            end: task.due_date instanceof Timestamp
+                ? new Date(task.due_date.toDate().getTime() + 3600000) // Add 1 hour
+                : new Date(new Date(task.due_date).getTime() + 3600000),
+            allDay: true,
+            status: task.status,
+            priority: task.priority
+        }))
     }
 
     return (
@@ -297,90 +344,119 @@ const TasksPage = () => {
             </div>
 
             {/* Task List */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-                <h2 className="text-xl font-semibold mb-6">Tasks</h2>
+            {!calendarView ? (
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                    <h2 className="text-xl font-semibold mb-6">Tasks</h2>
 
-                {loading ? (
-                    <div className="flex justify-center items-center h-40">
-                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-                    </div>
-                ) : tasks.length === 0 ? (
-                    <div className="text-center py-10 text-gray-500">
-                        <p>No tasks found. Add a new task to get started.</p>
-                    </div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="table w-full">
-                            <thead>
-                                <tr>
-                                    <th>Title</th>
-                                    <th>Due Date</th>
-                                    <th>Priority</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {tasks.map(task => (
-                                    <tr key={task.id} className="hover">
-                                        <td>
-                                            <div>
-                                                <div className="font-bold">{task.title}</div>
-                                                <div className="text-sm opacity-50">{task.description}</div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            {task.due_date instanceof Timestamp
-                                                ? new Date(task.due_date.toDate()).toLocaleDateString()
-                                                : new Date(task.due_date).toLocaleDateString()}
-                                        </td>
-                                        <td>
-                                            <span className={`badge ${task.priority === 'high' ? 'badge-error' :
-                                                task.priority === 'medium' ? 'badge-warning' : 'badge-info'
-                                                }`}>
-                                                {task.priority}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span className={`badge ${task.status === 'completed' ? 'badge-success' :
-                                                task.status === 'overdue' ? 'badge-error' : 'badge-warning'
-                                                }`}>
-                                                {task.status}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div className="flex space-x-2">
-                                                {task.status !== 'completed' && (
-                                                    <button
-                                                        className="btn btn-xs btn-success"
-                                                        onClick={() => handleUpdateTaskStatus(task.id, 'completed')}
-                                                    >
-                                                        <FaCheck />
-                                                    </button>
-                                                )}
-                                                {task.status === 'completed' && (
-                                                    <button
-                                                        className="btn btn-xs btn-warning"
-                                                        onClick={() => handleUpdateTaskStatus(task.id, 'pending')}
-                                                    >
-                                                        <FaClock />
-                                                    </button>
-                                                )}
-                                                <button
-                                                    className="btn btn-xs btn-error"
-                                                    onClick={() => handleDeleteTask(task.id)}
-                                                >
-                                                    <FaTimes />
-                                                </button>
-                                            </div>
-                                        </td>
+                    {loading ? (
+                        <div className="flex justify-center items-center h-40">
+                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                        </div>
+                    ) : tasks.length === 0 ? (
+                        <div className="text-center py-10 text-gray-500">
+                            <p>No tasks found. Add a new task to get started.</p>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="table w-full">
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Due Date</th>
+                                        <th>Priority</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {tasks.map(task => (
+                                        <tr key={task.id} className="hover">
+                                            <td>
+                                                <div>
+                                                    <div className="font-bold">{task.title}</div>
+                                                    <div className="text-sm opacity-50">{task.description}</div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {task.due_date instanceof Timestamp
+                                                    ? new Date(task.due_date.toDate()).toLocaleDateString()
+                                                    : new Date(task.due_date).toLocaleDateString()}
+                                            </td>
+                                            <td>
+                                                <span className={`badge ${task.priority === 'high' ? 'badge-error' :
+                                                    task.priority === 'medium' ? 'badge-warning' : 'badge-info'
+                                                    }`}>
+                                                    {task.priority}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span className={`badge ${task.status === 'completed' ? 'badge-success' :
+                                                    task.status === 'overdue' ? 'badge-error' : 'badge-warning'
+                                                    }`}>
+                                                    {task.status}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div className="flex space-x-2">
+                                                    {task.status !== 'completed' && (
+                                                        <button
+                                                            className="btn btn-xs btn-success"
+                                                            onClick={() => handleUpdateTaskStatus(task.id, 'completed')}
+                                                        >
+                                                            <FaCheck />
+                                                        </button>
+                                                    )}
+                                                    {task.status === 'completed' && (
+                                                        <button
+                                                            className="btn btn-xs btn-warning"
+                                                            onClick={() => handleUpdateTaskStatus(task.id, 'pending')}
+                                                        >
+                                                            <FaClock />
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        className="btn btn-xs btn-error"
+                                                        onClick={() => handleDeleteTask(task.id)}
+                                                    >
+                                                        <FaTimes />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+                    <div style={{ height: 600 }}>
+                        <Calendar
+                            localizer={localizer}
+                            events={getCalendarEvents()}
+                            startAccessor="start"
+                            endAccessor="end"
+                            style={{ height: '100%' }}
+                            eventPropGetter={(event: CalendarEvent) => {
+                                let backgroundColor = '#3788d8'
+                                if (event.status === 'completed') backgroundColor = '#10B981'
+                                else if (event.status === 'overdue') backgroundColor = '#EF4444'
+                                else if (event.priority === 'high') backgroundColor = '#F59E0B'
+
+                                return { style: { backgroundColor } }
+                            }}
+                            onSelectEvent={(event: any) => {
+                                // Handle event click - could open edit modal
+                                const task = tasks.find(t => t.id === event.id)
+                                if (task) {
+                                    // Open edit modal or show details
+                                }
+                            }}
+                        />
                     </div>
-                )}
-            </div>
+                </div>
+            )}
 
             {/* Calendar View */}
             <CropCalendar />

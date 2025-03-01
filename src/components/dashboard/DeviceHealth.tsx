@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { FaMicrochip, FaCheck, FaExclamationTriangle, FaWifi, FaBatteryThreeQuarters } from 'react-icons/fa'
+import { FaMicrochip, FaWifi, FaBatteryThreeQuarters } from 'react-icons/fa'
 import { motion } from 'framer-motion'
 
+// Define the Device interface
 interface Device {
     id: number
     name: string
@@ -13,6 +14,7 @@ interface Device {
     location: string
 }
 
+// Sample devices data
 const devices: Device[] = [
     {
         id: 1,

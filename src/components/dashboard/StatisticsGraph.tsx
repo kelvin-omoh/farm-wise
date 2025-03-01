@@ -11,10 +11,20 @@ const data = [
 ]
 
 interface StatisticsGraphProps {
-    useTestData?: boolean;
+    useTestData: boolean;
 }
 
-export const StatisticsGraph = ({ useTestData = true }: StatisticsGraphProps) => {
+const fetchRealData = () => {
+    console.log("Fetching real data...");
+    // In a real app, this would make an API call
+    return data; // Return test data for now
+};
+
+export const StatisticsGraph = ({ useTestData }: StatisticsGraphProps) => {
+    console.log(`Using test data: ${useTestData}`);
+
+    const chartData = useTestData ? data : fetchRealData();
+
     return (
         <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between mb-6">
@@ -30,7 +40,7 @@ export const StatisticsGraph = ({ useTestData = true }: StatisticsGraphProps) =>
             </div>
             <div className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={data}>
+                    <AreaChart data={chartData}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="name" />
                         <YAxis />

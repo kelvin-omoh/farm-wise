@@ -137,56 +137,20 @@ export const getLatestSensorReadings = async (farmId: string) => {
 export const getWeatherData = async (farmId: string) => {
     try {
         const weatherRef = collection(db, 'weather_data');
-
-        // Simple query that doesn't require a composite index
-        const q = query(
-            weatherRef,
-            where('farm_id', '==', farmId)
-            // Remove the orderBy for now
-        );
-
+        const q = query(weatherRef, where('farm_id', '==', farmId));
         const querySnapshot = await getDocs(q);
 
         if (querySnapshot.empty) {
             console.log('No weather data found');
-            // Return test data as fallback
-            return {
-                temperature: 28,
-                humidity: 65,
-                wind_speed: 12,
-                precipitation: 0,
-                forecast: 'sunny',
-                location: 'Lagos, Nigeria',
-                timestamp: new Date().toISOString(),
-                id: '1',
-                farm_id: farmId,
-                forecastData: [
-                    { day: 'Mon', temp: '29°C', condition: 'Sunny' },
-                    { day: 'Tue', temp: '28°C', condition: 'Partly Cloudy' },
-                    { day: 'Wed', temp: '30°C', condition: 'Sunny' },
-                    { day: 'Thu', temp: '27°C', condition: 'Rain' },
-                    { day: 'Fri', temp: '26°C', condition: 'Thunderstorm' }
-                ]
-            };
+            return null;
         }
 
-        // Just get the first document
-        const weatherData = querySnapshot.docs[0].data();
-        return {
-            ...weatherData,
-            id: querySnapshot.docs[0].id,
-            // Add default forecast data if not present
-            forecastData: weatherData.forecastData || [
-                { day: 'Mon', temp: '29°C', condition: 'Sunny' },
-                { day: 'Tue', temp: '28°C', condition: 'Partly Cloudy' },
-                { day: 'Wed', temp: '30°C', condition: 'Sunny' },
-                { day: 'Thu', temp: '27°C', condition: 'Rain' },
-                { day: 'Fri', temp: '26°C', condition: 'Thunderstorm' }
-            ]
-        };
+        const doc = querySnapshot.docs[0];
+        return { id: doc.id, ...doc.data() };
     } catch (error) {
         console.error('Error fetching weather data:', error);
-        throw error;
+        // Don't throw the error, just return null
+        return null;
     }
 };
 
@@ -460,8 +424,16 @@ export const subscribeToDevices = (farmId: string, callback: (devices: any[]) =>
 // Analytics services
 export const getFarmAnalytics = async (farmId: string) => {
     try {
-        // You would typically fetch this data from different collections
-        // For now, we'll create a simple implementation that returns test data
+        // Initialize with proper types
+        const cropYields: { name: string; corn: number; wheat: number; soybeans: number; }[] = [];
+        const resourceUsage: { name: string; water: number; electricity: number; fuel: number; }[] = [];
+        const cropDistribution: { name: string; value: number; color: string; }[] = [];
+        const profitMargins: { name: string; profit: number; cost: number; }[] = [];
+        const soilHealth: { name: string; nitrogen: number; phosphorus: number; potassium: number; }[] = [];
+
+        // Add this before processing the crop distribution data
+        const colors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+        let colorIndex = 0;
 
         // Fetch crop yields
         const yieldsRef = collection(db, 'crop_yields');
@@ -515,7 +487,6 @@ export const getFarmAnalytics = async (farmId: string) => {
             ]);
 
         // Process crop yields data
-        const cropYields = [];
         yieldsSnapshot.forEach(doc => {
             const data = doc.data();
             cropYields.push({
@@ -527,7 +498,6 @@ export const getFarmAnalytics = async (farmId: string) => {
         });
 
         // Process resource usage data
-        const resourceUsage = [];
         resourcesSnapshot.forEach(doc => {
             const data = doc.data();
             resourceUsage.push({
@@ -539,10 +509,6 @@ export const getFarmAnalytics = async (farmId: string) => {
         });
 
         // Process crop distribution data
-        const cropDistribution = [];
-        const colors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
-        let colorIndex = 0;
-
         cropsSnapshot.forEach(doc => {
             const data = doc.data();
             cropDistribution.push({
@@ -554,7 +520,6 @@ export const getFarmAnalytics = async (farmId: string) => {
         });
 
         // Process profit margins data
-        const profitMargins = [];
         financialSnapshot.forEach(doc => {
             const data = doc.data();
             profitMargins.push({
@@ -565,7 +530,6 @@ export const getFarmAnalytics = async (farmId: string) => {
         });
 
         // Process soil health data
-        const soilHealth = [];
         soilSnapshot.forEach(doc => {
             const data = doc.data();
             soilHealth.push({
@@ -790,4 +754,45 @@ export const deleteTask = async (taskId: string) => {
         console.error('Error deleting task:', error);
         throw error;
     }
+};
+
+// Get due tasks (tasks that are due today or overdue)
+export const getDueTasks = async (farmId: string) => {
+    try {
+        const tasksRef = collection(db, 'tasks');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Simplify the query to avoid index requirements
+        const q = query(
+            tasksRef,
+            where('farm_id', '==', farmId),
+            where('status', '==', 'pending')
+        );
+
+        const querySnapshot = await getDocs(q);
+
+        const tasks: Task[] = [];
+        querySnapshot.forEach((doc) => {
+            const task = { id: doc.id, ...doc.data() } as Task;
+            // Filter in memory instead of in the query
+            if (task.due_date && task.due_date.toDate() <= today) {
+                tasks.push(task);
+            }
+        });
+
+        // Sort in memory
+        return tasks.sort((a, b) =>
+            a.due_date.toDate().getTime() - b.due_date.toDate().getTime()
+        );
+    } catch (error) {
+        console.error('Error fetching due tasks:', error);
+        return [];
+    }
+};
+
+// Add this helper function at the top of the file
+export const isIndexError = (error: any): boolean => {
+    return error?.message?.includes('requires an index') ||
+        error?.message?.includes('index does not exist');
 }; 

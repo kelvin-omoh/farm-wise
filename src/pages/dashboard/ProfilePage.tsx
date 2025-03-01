@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { FarmProfileSetup } from '../../components/dashboard/FarmProfileSetup'
-import { Switch } from '../../components/ui/Switch'
-import { FaUser, FaFarm, FaMapMarkerAlt, FaEdit, FaCamera } from 'react-icons/fa'
+// import { Switch } from '../../components/ui/Switch'
+import { FaMapMarkerAlt, FaEdit, FaCamera } from 'react-icons/fa'
 
 const ProfilePage = () => {
-    const [useTestData, setUseTestData] = useState(true)
+    // const [useTestData, setUseTestData] = useState(true)
     const [isEditing, setIsEditing] = useState(false)
 
     return (

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useFirestore } from '../../hooks/useFirestore';
 import { where } from 'firebase/firestore';
-import { useAuthStore } from '../../stores/authStore';
 import { addDevice } from '../../services/firebaseService';
 
 interface Device {
@@ -121,8 +120,8 @@ export const DeviceList = ({ farmId }: { farmId: string }) => {
                                     <td>{device.type}</td>
                                     <td>
                                         <span className={`badge ${device.status === 'active' ? 'badge-success' :
-                                                device.status === 'inactive' ? 'badge-warning' :
-                                                    'badge-error'
+                                            device.status === 'inactive' ? 'badge-warning' :
+                                                'badge-error'
                                             }`}>
                                             {device.status}
                                         </span>

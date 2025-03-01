@@ -1,10 +1,29 @@
 import { FaRobot, FaLeaf, FaChartLine, FaExclamationTriangle } from 'react-icons/fa'
 
 interface AIInsightsProps {
-    useTestData?: boolean;
+    useTestData: boolean;
 }
 
-export const AIInsights = ({ useTestData = true }: AIInsightsProps) => {
+// Add this function to fetch real insights
+// const fetchRealInsights = () => {
+//     console.log("Fetching real insights...");
+//     // In a real app, this would make an API call
+//     return [
+//         { title: "Real Insight 1", message: "This is real data" },
+//         { title: "Real Insight 2", message: "More real data" }
+//     ];
+// };
+
+export const AIInsights = ({ useTestData }: AIInsightsProps) => {
+    console.log(`Using test data: ${useTestData}`);
+
+    // const insights = useTestData
+    //     ? [
+    //         { title: "Test Insight 1", message: "This is test data" },
+    //         // More test insights
+    //     ]
+    //     : fetchRealInsights();
+
     return (
         <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center gap-2 mb-4">

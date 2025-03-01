@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { IconType } from 'react-icons'
-import { useTestDataStore } from '../../stores/testDataStore'
+// import { useTestDataStore } from '../../stores/testDataStore'
 
 interface SensorCardProps {
     title: string
@@ -13,7 +13,7 @@ interface SensorCardProps {
 }
 
 export const SensorCard = ({ title, value, unit, icon: Icon, color, index }: SensorCardProps) => {
-    const { useTestData } = useTestDataStore()
+    // const { useTestData } = useTestDataStore()
 
     return (
         <motion.div

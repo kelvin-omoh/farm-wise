@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { WeatherWidget } from '../../components/dashboard/WeatherWidget'
 import { Switch } from '../../components/ui/Switch'
-import { FaSun, FaCloud, FaCloudRain, FaSnowflake, FaWind } from 'react-icons/fa'
+import { FaSun, FaCloudRain, FaWind } from 'react-icons/fa'
 import { useAuthStore } from '../../stores/authStore'
 import { useTestData } from '../../hooks/useTestData'
 import { getHistoricalWeatherData } from '../../services/firebaseService'
@@ -87,7 +87,28 @@ const WeatherPage = () => {
             </div>
 
             {/* Current Weather */}
-            <WeatherWidget fullWidth={true} farmId={farmId} />
+            <WeatherWidget
+                fullWidth={true}
+                farmId={farmId}
+                weatherData={{
+                    temperature: 28,
+                    humidity: 65,
+                    wind_speed: 12,
+                    precipitation: 0,
+                    forecast: 'Sunny',
+                    location: 'Your Farm Location',
+                    timestamp: new Date().toISOString(),
+                    id: '1',
+                    farm_id: farmId,
+                    forecastData: [
+                        { day: 'Mon', temp: '29°C', condition: 'Sunny' },
+                        { day: 'Tue', temp: '28°C', condition: 'Partly Cloudy' },
+                        { day: 'Wed', temp: '30°C', condition: 'Sunny' },
+                        { day: 'Thu', temp: '27°C', condition: 'Rain' },
+                        { day: 'Fri', temp: '26°C', condition: 'Thunderstorm' }
+                    ]
+                }}
+            />
 
             {/* Weather Alerts */}
             <div className="bg-white rounded-xl shadow-sm p-6">

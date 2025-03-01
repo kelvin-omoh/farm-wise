@@ -37,7 +37,7 @@ const registerSchema = Yup.object().shape({
 
 const Register = () => {
     const navigate = useNavigate()
-    const { register, user, error: authError, clearError } = useAuthStore()
+    const { register, user, clearError } = useAuthStore()
     const [error, setError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(false)
 
@@ -168,7 +168,7 @@ const Register = () => {
                         validationSchema={registerSchema}
                         onSubmit={handleSubmit}
                     >
-                        {({ errors, touched, isSubmitting, values, setFieldValue }) => (
+                        {({ errors, touched, isSubmitting }) => (
                             <Form className="space-y-6">
                                 <div>
                                     <label className="label">Full Name</label>

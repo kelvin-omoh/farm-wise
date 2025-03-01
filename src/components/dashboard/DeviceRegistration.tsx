@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { FaQrcode, FaPlus, FaCheck, FaTimes } from 'react-icons/fa'
+import { useState, useEffect } from 'react'
+import { FaQrcode, FaPlus, FaCheck } from 'react-icons/fa'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '../../stores/authStore'
 
@@ -31,6 +31,12 @@ export const DeviceRegistration = ({ onSubmit, onCancel }: DeviceRegistrationPro
     const [error, setError] = useState('')
 
     const { user } = useAuthStore()
+
+    useEffect(() => {
+        if (user) {
+            console.log("User is logged in:", user.email);
+        }
+    }, [user]);
 
     const handleStartRegistration = () => {
         setIsRegistering(true)

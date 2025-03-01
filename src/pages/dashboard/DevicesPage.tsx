@@ -14,9 +14,9 @@ import {
     where,
     getDocs,
     addDoc,
-    doc,
-    getDoc,
-    setDoc,
+    // doc,
+    // getDoc,
+    // setDoc,
     orderBy,
     limit
 } from 'firebase/firestore'

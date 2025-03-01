@@ -25,11 +25,8 @@ const stats = [
     }
 ]
 
-interface FarmStatisticsProps {
-    useTestData?: boolean;
-}
 
-export const FarmStatistics = ({ useTestData = true }: FarmStatisticsProps) => {
+export const FarmStatistics = () => {
     return (
         <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between mb-6">

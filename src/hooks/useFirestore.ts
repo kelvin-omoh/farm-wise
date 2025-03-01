@@ -3,7 +3,6 @@ import { db } from '../config/firebase';
 import {
     collection,
     query,
-    where,
     orderBy,
     limit,
     onSnapshot,

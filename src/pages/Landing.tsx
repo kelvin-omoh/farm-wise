@@ -1,23 +1,12 @@
-import { Link } from 'react-router-dom'
-import { motion, useScroll, useTransform } from 'framer-motion'
+import { motion } from 'framer-motion'
 import {
-    FaChartLine,
-    FaRobot,
-    FaGlobe,
-    FaMobile,
-    FaUsers,
-    FaChartBar,
     FaRegCheckCircle,
-    FaServer,
-    FaShieldAlt,
-    FaLeaf,
     FaArrowRight,
     FaBars,
-    FaTimes
+    FaTimes,
+    FaEnvelope
 } from 'react-icons/fa'
-import { IoIosArrowForward } from 'react-icons/io'
 import { Section } from '../components/ui/Section'
-import GridOverlay from '../components/GridOverlay'
 import { AnimatePresence } from 'framer-motion'
 import Preloader from '../components/Preloader'
 import { useState } from 'react'
@@ -27,56 +16,18 @@ import ContactForm from '../components/ui/ContactForm'
 import { features, pricingPlans } from '../constants/landingData'
 import { images } from '../constants/images'
 import GridBackground from '../components/GridBackground'
-
-const fadeIn = {
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.6 }
-}
-
-const stagger = {
-    animate: {
-        transition: {
-            staggerChildren: 0.1
-        }
-    }
-}
-
-const Testimonial = ({ image, name, role, quote }: {
-    image: string;
-    name: string;
-    role: string;
-    quote: string;
-}) => (
-    <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow"
-    >
-        <div className="flex items-center gap-4 mb-4">
-            <div className="relative w-14 h-14 rounded-full overflow-hidden">
-                <img
-                    src={image}
-                    alt={name}
-                    className="w-full h-full object-cover"
-                />
-            </div>
-            <div>
-                <h4 className="font-semibold text-gray-900">{name}</h4>
-                <p className="text-sm text-gray-500">{role}</p>
-            </div>
-        </div>
-        <p className="text-gray-600 leading-relaxed">{quote}</p>
-    </motion.div>
-)
+import { addDoc, collection, Timestamp } from 'firebase/firestore'
+import { db } from '../config/firebase'
+import logo from "../assets/logo.jpeg"
 
 const Landing = () => {
-    const { scrollYProgress } = useScroll()
-    const opacity = useTransform(scrollYProgress, [0, 0.2], [1, 0])
-    const y = useTransform(scrollYProgress, [0, 0.2], [0, -50])
     const [showPreloader, setShowPreloader] = useState(true)
     const [showMobileMenu, setShowMobileMenu] = useState(false)
+    const [showWaitlistModal, setShowWaitlistModal] = useState(false)
+    const [email, setEmail] = useState('')
+    const [submitting, setSubmitting] = useState(false)
+    const [submitSuccess, setSubmitSuccess] = useState(false)
+    const [submitError, setSubmitError] = useState('')
 
     const scrollToSection = (id: string) => {
         const element = document.getElementById(id)
@@ -86,26 +37,33 @@ const Landing = () => {
         setShowMobileMenu(false)
     }
 
-    const testimonials = [
-        {
-            image: images.testimonials.farmer1,
-            name: "John Adebayo",
-            role: "Maize Farmer",
-            quote: "Since using Farm wise, my crop yield has increased by 40%. The real-time insights are invaluable."
-        },
-        {
-            image: images.testimonials.farmer2,
-            name: "Sarah Okafor",
-            role: "Livestock Farmer",
-            quote: "The livestock monitoring features have helped me prevent diseases and optimize feed management."
-        },
-        {
-            image: images.testimonials.farmer3,
-            name: "David Oluwale",
-            role: "Mixed Farmer",
-            quote: "The marketplace feature has connected me with buyers who pay premium prices for my produce."
+    const handleWaitlistSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+
+        if (!email) {
+            setSubmitError('Please enter your email address')
+            return
         }
-    ]
+
+        setSubmitting(true)
+        setSubmitError('')
+
+        try {
+            // Add email to Firebase waitlist collection
+            await addDoc(collection(db, 'waitlist'), {
+                email,
+                timestamp: Timestamp.now()
+            })
+
+            setSubmitSuccess(true)
+            setEmail('')
+        } catch (error) {
+            console.error('Error adding to waitlist:', error)
+            setSubmitError('Failed to join waitlist. Please try again.')
+        } finally {
+            setSubmitting(false)
+        }
+    }
 
     return (
         <>
@@ -128,7 +86,11 @@ const Landing = () => {
                                 className="flex items-center gap-3"
                                 whileHover={{ scale: 1.05 }}
                             >
-                                <FaLeaf className="w-8 h-8 text-primary" />
+                                <img
+                                    src={logo}
+                                    alt="Farm wise Logo"
+                                    className="w-10 h-10 object-contain"
+                                />
                                 <span className="font-ivy text-2xl font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">
                                     Farm wise
                                 </span>
@@ -163,17 +125,15 @@ const Landing = () => {
                             </div>
 
                             <div className="flex items-center gap-4">
-                                <Link to="/login" className="text-gray-700 hover:text-primary transition-colors">
-                                    Login
-                                </Link>
+                                {/* Replace login/register with Join Waitlist */}
                                 <motion.div whileHover={{ scale: 1.05 }}>
-                                    <Link
-                                        to="/register"
+                                    <button
+                                        onClick={() => setShowWaitlistModal(true)}
                                         className="px-6 py-2.5 bg-primary text-white rounded-full hover:bg-primary-dark transition-colors flex items-center gap-2"
                                     >
-                                        Get Started
+                                        Join Waitlist
                                         <FaArrowRight className="w-4 h-4" />
-                                    </Link>
+                                    </button>
                                 </motion.div>
 
                                 {/* Mobile Menu Button */}
@@ -244,6 +204,15 @@ const Landing = () => {
                                         >
                                             Contact
                                         </button>
+                                        <button
+                                            onClick={() => {
+                                                setShowMobileMenu(false)
+                                                setShowWaitlistModal(true)
+                                            }}
+                                            className="bg-primary text-white py-3 px-4 rounded-lg"
+                                        >
+                                            Join Waitlist
+                                        </button>
                                     </div>
                                 </motion.div>
                             </>
@@ -267,9 +236,12 @@ const Landing = () => {
                                 Empower your farming with IoT sensors, AI insights, and direct market access.
                             </p>
                             <div className="flex gap-4">
-                                <Link to="/register" className="btn btn-primary">
-                                    Get Started
-                                </Link>
+                                <button
+                                    onClick={() => setShowWaitlistModal(true)}
+                                    className="btn btn-primary"
+                                >
+                                    Join Waitlist
+                                </button>
                                 <button
                                     onClick={() => scrollToSection('features')}
                                     className="btn btn-outline"
@@ -384,7 +356,11 @@ const Landing = () => {
                         <div className="grid md:grid-cols-4 gap-12">
                             <div>
                                 <div className="flex items-center gap-3 mb-6">
-                                    <FaLeaf className="w-8 h-8 text-primary" />
+                                    <img
+                                        src={logo}
+                                        alt="Farm wise Logo"
+                                        className="w-8 h-8 object-contain"
+                                    />
                                     <span className="font-ivy text-2xl font-bold">Farm wise</span>
                                 </div>
                                 <p className="text-gray-400">
@@ -394,25 +370,23 @@ const Landing = () => {
                             <div>
                                 <h4 className="font-bold mb-4">Product</h4>
                                 <ul className="space-y-2">
-                                    <li><Link to="/features">Features</Link></li>
-                                    <li><Link to="/pricing">Pricing</Link></li>
-                                    <li><Link to="/marketplace">Marketplace</Link></li>
+                                    <li><button onClick={() => scrollToSection('features')}>Features</button></li>
+                                    <li><button onClick={() => scrollToSection('pricing')}>Pricing</button></li>
+                                    <li><button onClick={() => setShowWaitlistModal(true)}>Join Waitlist</button></li>
                                 </ul>
                             </div>
                             <div>
                                 <h4 className="font-bold mb-4">Company</h4>
                                 <ul className="space-y-2">
-                                    <li><Link to="/about">About</Link></li>
-                                    <li><Link to="/blog">Blog</Link></li>
-                                    <li><Link to="/careers">Careers</Link></li>
+                                    <li><button onClick={() => scrollToSection('about')}>About</button></li>
+                                    <li><button onClick={() => scrollToSection('contact')}>Contact</button></li>
                                 </ul>
                             </div>
                             <div>
                                 <h4 className="font-bold mb-4">Legal</h4>
                                 <ul className="space-y-2">
-                                    <li><Link to="/privacy">Privacy</Link></li>
-                                    <li><Link to="/terms">Terms</Link></li>
-                                    <li><Link to="/security">Security</Link></li>
+                                    <li><a href="#">Privacy Policy</a></li>
+                                    <li><a href="#">Terms of Service</a></li>
                                 </ul>
                             </div>
                         </div>
@@ -422,6 +396,101 @@ const Landing = () => {
                     </div>
                 </footer>
             </div>
+
+            {/* Waitlist Modal */}
+            <AnimatePresence>
+                {showWaitlistModal && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+                            onClick={() => setShowWaitlistModal(false)}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            className="fixed top-[17em] left-[32em] -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl p-8 shadow-2xl z-50 w-full max-w-md"
+                        >
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-2xl font-bold">Join Our Waitlist</h3>
+                                <button
+                                    onClick={() => setShowWaitlistModal(false)}
+                                    className="p-2 hover:bg-gray-100 rounded-full"
+                                >
+                                    <FaTimes />
+                                </button>
+                            </div>
+
+                            {submitSuccess ? (
+                                <div className="text-center py-8">
+                                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
+                                        <FaRegCheckCircle className="w-8 h-8 text-green-500" />
+                                    </div>
+                                    <h4 className="text-xl font-semibold mb-2">Thank You!</h4>
+                                    <p className="text-gray-600">
+                                        You've been added to our waitlist. We'll notify you when Farm wise launches.
+                                    </p>
+                                    <button
+                                        onClick={() => setShowWaitlistModal(false)}
+                                        className="btn btn-primary mt-6"
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            ) : (
+                                <>
+                                    <p className="text-gray-600 mb-6">
+                                        Be the first to know when Farm wise launches. Enter your email to join our waitlist.
+                                    </p>
+
+                                    {submitError && (
+                                        <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
+                                            <p className="text-red-700">{submitError}</p>
+                                        </div>
+                                    )}
+
+                                    <form onSubmit={handleWaitlistSubmit}>
+                                        <div className="mb-4">
+                                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                                                Email Address
+                                            </label>
+                                            <div className="relative">
+                                                <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                                <input
+                                                    type="email"
+                                                    id="email"
+                                                    className="input input-bordered w-full pl-10"
+                                                    placeholder="you@example.com"
+                                                    value={email}
+                                                    onChange={(e) => setEmail(e.target.value)}
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="submit"
+                                            className="btn btn-primary w-full"
+                                            disabled={submitting}
+                                        >
+                                            {submitting ? (
+                                                <span className="flex items-center justify-center">
+                                                    <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></span>
+                                                    Submitting...
+                                                </span>
+                                            ) : (
+                                                'Join Waitlist'
+                                            )}
+                                        </button>
+                                    </form>
+                                </>
+                            )}
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
         </>
     )
 }

@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { FaMapMarkerAlt, FaRuler, FaSeedling, FaHorse, FaCheck, FaHome } from 'react-icons/fa'
+import { useState, useEffect } from 'react'
+import { FaCheck, FaHome } from 'react-icons/fa'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '../../stores/authStore'
 
@@ -14,6 +14,12 @@ export const FarmProfileSetup = () => {
     const [error, setError] = useState('')
 
     const { user } = useAuthStore()
+
+    useEffect(() => {
+        if (user) {
+            console.log("Setting up farm for user:", user.email);
+        }
+    }, [user]);
 
     const cropOptions = [
         'Maize', 'Rice', 'Cassava', 'Yam', 'Tomatoes',

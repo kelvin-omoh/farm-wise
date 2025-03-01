@@ -1,7 +1,8 @@
+// import React from 'react'
 import { motion } from 'framer-motion'
 import { FaStar } from 'react-icons/fa'
 
-interface Product {
+export type Product = {
     id: string
     name: string
     description: string
