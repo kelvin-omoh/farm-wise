@@ -76,7 +76,7 @@ const ContactForm = () => {
                         </div>
                         <div>
                             <h4 className="font-medium">Phone</h4>
-                            <p className="text-gray-600">+234 123 456 7890</p>
+                            <p className="text-gray-600">+234 907 359 7660</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
@@ -85,7 +85,7 @@ const ContactForm = () => {
                         </div>
                         <div>
                             <h4 className="font-medium">Address</h4>
-                            <p className="text-gray-600">123 Tech Hub, Victoria Island, Lagos</p>
+                            <p className="text-gray-600">45,Akindele Coker,Liasu, Ikotun,Egbe,Lagos</p>
                         </div>
                     </div>
                 </div>
