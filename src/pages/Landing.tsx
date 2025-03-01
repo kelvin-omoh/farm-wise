@@ -88,11 +88,11 @@ const Landing = () => {
                             >
                                 <img
                                     src={logo}
-                                    alt="Farm wise Logo"
+                                    alt="fermwise Logo"
                                     className="w-10 h-10 object-contain"
                                 />
                                 <span className="font-ivy text-2xl font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">
-                                    Farm wise
+                                    fermwise
                                 </span>
                             </motion.div>
 
@@ -272,9 +272,9 @@ const Landing = () => {
                             whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true }}
                         >
-                            <h2 className="heading-2 mb-6">About Farm wise</h2>
+                            <h2 className="heading-2 mb-6">About fermwise</h2>
                             <p className="text-gray-600 mb-6">
-                                Farm wise is revolutionizing farming in Nigeria by bringing smart technology
+                                fermwise is revolutionizing farming in Nigeria by bringing smart technology
                                 to agricultural practices. Our platform combines IoT sensors, artificial
                                 intelligence, and market connectivity to help farmers maximize their yields
                                 and profits.
@@ -302,7 +302,7 @@ const Landing = () => {
                         >
                             <img
                                 src={images.features.community}
-                                alt="About Farm wise"
+                                alt="About fermwise"
                                 className="rounded-2xl shadow-2xl"
                             />
                         </motion.div>
@@ -358,10 +358,10 @@ const Landing = () => {
                                 <div className="flex items-center gap-3 mb-6">
                                     <img
                                         src={logo}
-                                        alt="Farm wise Logo"
+                                        alt="fermwise Logo"
                                         className="w-8 h-8 object-contain"
                                     />
-                                    <span className="font-ivy text-2xl font-bold">Farm wise</span>
+                                    <span className="font-ivy text-2xl font-bold">fermwise</span>
                                 </div>
                                 <p className="text-gray-400">
                                     Transforming Nigerian agriculture with smart technology
@@ -391,7 +391,7 @@ const Landing = () => {
                             </div>
                         </div>
                         <div className="border-t border-neutral-content/10 mt-12 pt-8 text-center">
-                            <p>&copy; 2024 Farm wise. All rights reserved.</p>
+                            <p>&copy; 2024 fermwise. All rights reserved.</p>
                         </div>
                     </div>
                 </footer>
@@ -431,7 +431,7 @@ const Landing = () => {
                                     </div>
                                     <h4 className="text-xl font-semibold mb-2">Thank You!</h4>
                                     <p className="text-gray-600">
-                                        You've been added to our waitlist. We'll notify you when Farm wise launches.
+                                        You've been added to our waitlist. We'll notify you when fermwise launches.
                                     </p>
                                     <button
                                         onClick={() => setShowWaitlistModal(false)}
@@ -443,7 +443,7 @@ const Landing = () => {
                             ) : (
                                 <>
                                     <p className="text-gray-600 mb-6">
-                                        Be the first to know when Farm wise launches. Enter your email to join our waitlist.
+                                        Be the first to know when fermwise launches. Enter your email to join our waitlist.
                                     </p>
 
                                     {submitError && (

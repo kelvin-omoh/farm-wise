@@ -19,7 +19,7 @@ const Preloader = ({ onComplete }: PreloaderProps) => {
                 transition={{ duration: 0.5 }}
                 className="text-4xl font-bold text-white"
             >
-                Farm wise
+                fermwise
             </motion.div>
         </motion.div>
     )
