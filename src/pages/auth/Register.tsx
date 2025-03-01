@@ -284,7 +284,7 @@ const Register = () => {
                         className="rounded-2xl shadow-2xl mb-8"
                     />
                     <h2 className="text-4xl font-bold text-white mb-4">
-                        Join fermwise Today
+                        Join Fermwise Today
                     </h2>
                     <p className="text-white/80 text-lg">
                         Transform your farming experience with smart technology and direct market access.
