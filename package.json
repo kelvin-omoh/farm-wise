@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "jest",
-    "deploy-indexes": "firebase deploy --only firestore:indexes"
+    "deploy-indexes": "firebase deploy --only firestore:indexes",
+    "generate-favicons": "npx favicons-generator ./src/assets/logo.jpeg --output ./public/favicons"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.0",

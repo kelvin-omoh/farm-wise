@@ -17,6 +17,8 @@ import { AuthProvider } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
 import { TestDataProvider } from './providers/TestDataProvider'
+import { Link } from 'react-router-dom'
+import logo from "./assets/logo.jpeg"
 
 const queryClient = new QueryClient()
 
