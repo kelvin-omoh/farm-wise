@@ -405,14 +405,14 @@ const Landing = () => {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+                            className="fixed w-[100vw] h-[100vh] inset-0 bg-black/50 backdrop-blur-sm z-50"
                             onClick={() => setShowWaitlistModal(false)}
                         />
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.9 }}
-                            className="fixed top-[17em] left-[32em] -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl p-8 shadow-2xl z-50 w-full max-w-md"
+                            className="fixed top-[25%] md:left-[30%] left-[0%] -translate-x-[25%] -translate-y-[25%] bg-white rounded-xl p-8 shadow-2xl z-50 w-full max-w-md"
                         >
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-2xl font-bold">Join Our Waitlist</h3>
