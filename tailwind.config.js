@@ -108,7 +108,7 @@ export default {
     daisyui: {
         themes: [
             {
-                farmwise: {
+                fermwise: {
                     "primary": "#1B4B3F",
                     "secondary": "#82D164",
                     "accent": "#8B5E3C",
