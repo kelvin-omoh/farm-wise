@@ -166,53 +166,66 @@ const Landing = () => {
                                     initial={{ x: '100%' }}
                                     animate={{ x: 0 }}
                                     exit={{ x: '100%' }}
-                                    className="fixed right-0 top-0 bottom-0 w-64 bg-white shadow-xl z-50 md:hidden"
+                                    transition={{ type: "spring", damping: 20 }}
+                                    className="fixed right-0 top-0 bottom-0 h-screen w-[80%] max-w-sm bg-white shadow-2xl z-50 md:hidden overflow-y-auto"
                                 >
-                                    <div className="p-4 border-b">
-                                        <div className="flex justify-between items-center">
-                                            <span className="font-bold">Menu</span>
+                                    <div className="p-6 border-b border-gray-100">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <img
+                                                    src={logo}
+                                                    alt="Fermwise Logo"
+                                                    className="w-8 h-8 object-contain"
+                                                />
+                                                <span className="font-ivy text-xl font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">
+                                                    Fermwise
+                                                </span>
+                                            </div>
                                             <button
                                                 onClick={() => setShowMobileMenu(false)}
-                                                className="p-2 hover:bg-gray-100 rounded-lg"
+                                                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                                             >
-                                                <FaTimes />
+                                                <FaTimes className="w-6 h-6 text-gray-500" />
                                             </button>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-4">
+                                    <div className="p-6 flex flex-col gap-2">
                                         <button
                                             onClick={() => scrollToSection('about')}
-                                            className="text-gray-600 hover:text-primary transition-colors py-3 px-4 rounded-lg hover:bg-primary/5"
+                                            className="w-full text-left px-4 py-3 rounded-lg hover:bg-primary/5 text-gray-700 hover:text-primary transition-colors"
                                         >
                                             About
                                         </button>
                                         <button
                                             onClick={() => scrollToSection('features')}
-                                            className="text-gray-600 hover:text-primary transition-colors py-3 px-4 rounded-lg hover:bg-primary/5"
+                                            className="w-full text-left px-4 py-3 rounded-lg hover:bg-primary/5 text-gray-700 hover:text-primary transition-colors"
                                         >
                                             Features
                                         </button>
                                         <button
                                             onClick={() => scrollToSection('pricing')}
-                                            className="text-gray-600 hover:text-primary transition-colors py-3 px-4 rounded-lg hover:bg-primary/5"
+                                            className="w-full text-left px-4 py-3 rounded-lg hover:bg-primary/5 text-gray-700 hover:text-primary transition-colors"
                                         >
                                             Pricing
                                         </button>
                                         <button
                                             onClick={() => scrollToSection('contact')}
-                                            className="text-gray-600 hover:text-primary transition-colors py-3 px-4 rounded-lg hover:bg-primary/5"
+                                            className="w-full text-left px-4 py-3 rounded-lg hover:bg-primary/5 text-gray-700 hover:text-primary transition-colors"
                                         >
                                             Contact
                                         </button>
-                                        <button
-                                            onClick={() => {
-                                                setShowMobileMenu(false)
-                                                setShowWaitlistModal(true)
-                                            }}
-                                            className="bg-primary text-white py-3 px-4 rounded-lg"
-                                        >
-                                            Join Waitlist
-                                        </button>
+                                        <div className="mt-4 pt-4 border-t border-gray-100">
+                                            <button
+                                                onClick={() => {
+                                                    setShowMobileMenu(false)
+                                                    setShowWaitlistModal(true)
+                                                }}
+                                                className="w-full px-4 py-3 bg-primary text-white rounded-lg flex items-center justify-center gap-2 hover:bg-primary-dark transition-colors"
+                                            >
+                                                Join Waitlist
+                                                <FaArrowRight className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
                                 </motion.div>
                             </>
