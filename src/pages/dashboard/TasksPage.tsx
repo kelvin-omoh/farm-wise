@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 // import { TaskManagement } from '../../components/dashboard/TaskManagement'
 import { CropCalendar } from '../../components/dashboard/CropCalendar'
-import { Switch } from '../../components/ui/Switch'
-import { FaPlus, FaFilter, FaSort, FaCheck, FaClock, FaExclamationTriangle, FaTimes } from 'react-icons/fa'
+// import { Switch } from '../../components/ui/Switch'
+import { FaPlus, FaFilter, /* FaSort, */ FaCheck, FaClock, FaExclamationTriangle, FaTimes } from 'react-icons/fa'
 import { useAuthStore } from '../../stores/authStore'
 // import { useTestData } from '../../hooks/useTestData'
-import {  addTask, updateTask, deleteTask, Task, subscribeToTasks } from '../../services/firebaseService'
+import { addTask, updateTask, deleteTask, Task, subscribeToTasks } from '../../services/firebaseService'
 import { Timestamp } from 'firebase/firestore'
 import { Calendar, momentLocalizer } from 'react-big-calendar'
 import moment from 'moment'
@@ -25,7 +25,6 @@ interface CalendarEvent {
 }
 
 const TasksPage = () => {
-    const [useLocalTestData, setUseLocalTestData] = useState(false)
     const [filter, setFilter] = useState('all')
     const [tasks, setTasks] = useState<Task[]>([])
     const [loading, setLoading] = useState(true)
@@ -43,64 +42,19 @@ const TasksPage = () => {
         pending: 0,
         overdue: 0
     })
-    const [calendarView, _] = useState(false)
+    const [calendarView, setCalendarView] = useState(false)
 
     const { user } = useAuthStore()
-    const farmId = user?.farm_id || 'default'
+    const farmId = user?.uid || 'default'
 
-    // Test data for tasks
-    const testTasks: Task[] = [
-        {
-            id: '1',
-            farm_id: farmId,
-            title: 'Inspect irrigation system',
-            description: 'Check for leaks and ensure proper water flow',
-            due_date: Timestamp.fromDate(new Date(Date.now() + 86400000)),
-            status: 'pending',
-            priority: 'high'
-        },
-        {
-            id: '2',
-            farm_id: farmId,
-            title: 'Apply fertilizer to corn field',
-            description: 'Use organic fertilizer as per recommendation',
-            due_date: Timestamp.fromDate(new Date(Date.now() + 172800000)),
-            status: 'pending',
-            priority: 'medium'
-        },
-        {
-            id: '3',
-            farm_id: farmId,
-            title: 'Harvest tomatoes',
-            description: 'Harvest ripe tomatoes from greenhouse',
-            due_date: Timestamp.fromDate(new Date(Date.now() - 86400000)),
-            status: 'completed',
-            priority: 'medium'
-        },
-        {
-            id: '4',
-            farm_id: farmId,
-            title: 'Repair fence in north field',
-            description: 'Fix damaged sections of the fence',
-            due_date: Timestamp.fromDate(new Date(Date.now() - 172800000)),
-            status: 'overdue',
-            priority: 'high'
-        }
-    ]
+    // Add a useEffect to log the farmId for debugging
+    useEffect(() => {
+        console.log('TasksPage - Using user ID as farm ID:', farmId);
+        console.log('TasksPage - Current user:', user);
+    }, [farmId, user]);
 
     // Set up real-time listener for tasks
     useEffect(() => {
-        if (useLocalTestData) {
-            let filteredTasks = [...testTasks]
-            if (filter !== 'all') {
-                filteredTasks = testTasks.filter(task => task.status === filter)
-            }
-            setTasks(filteredTasks)
-            updateTaskStats(filteredTasks)
-            setLoading(false)
-            return
-        }
-
         setLoading(true)
 
         try {
@@ -122,328 +76,277 @@ const TasksPage = () => {
             };
         } catch (error) {
             console.error('Error setting up task listener:', error);
-            // Fall back to test data
-            setTasks(testTasks);
-            updateTaskStats(testTasks);
             setLoading(false);
-
         }
-
-        return () => { };
-    }, [farmId, filter, useLocalTestData]);
+    }, [farmId, filter]);
 
     // Update task statistics
-    const updateTaskStats = (taskList: Task[]) => {
+    const updateTaskStats = (tasks: Task[]) => {
         const stats = {
-            total: taskList.length,
-            completed: taskList.filter(t => t.status === 'completed').length,
-            pending: taskList.filter(t => t.status === 'pending').length,
-            overdue: taskList.filter(t => t.status === 'overdue').length
+            total: tasks.length,
+            completed: tasks.filter(task => task.status === 'completed').length,
+            pending: tasks.filter(task => task.status === 'pending').length,
+            overdue: tasks.filter(task => task.status === 'overdue').length
         }
         setTaskStats(stats)
     }
 
-    // Check for overdue tasks
-    useEffect(() => {
-        if (useLocalTestData) return;
-
-        // Function to check and update overdue tasks
-        const checkOverdueTasks = async () => {
-            const now = new Date();
-
-            for (const task of tasks) {
-                if (task.status === 'pending') {
-                    const dueDate = task.due_date instanceof Timestamp
-                        ? task.due_date.toDate()
-                        : new Date(task.due_date);
-
-                    if (dueDate < now) {
-                        // Task is overdue
-                        await updateTask(task.id, { status: 'overdue' });
-                    }
-                }
-            }
-        };
-
-        checkOverdueTasks();
-
-        // Set up interval to check for overdue tasks
-        const interval = setInterval(checkOverdueTasks, 3600000); // Check every hour
-
-        return () => clearInterval(interval);
-    }, [tasks, useLocalTestData]);
-
     // Handle adding a new task
     const handleAddTask = async () => {
         if (!newTask.title || !newTask.due_date) {
-            alert('Please fill in all required fields')
+            // Show validation error
             return
         }
 
         try {
             const taskData = {
-                ...newTask,
                 farm_id: farmId,
-                due_date: Timestamp.fromDate(new Date(newTask.due_date))
-            } as const
-
-            if (!useLocalTestData) {
-                await addTask(taskData)
-            } else {
-                // For test mode, just add to local state
-                const newId = (Math.max(...tasks.map(t => parseInt(t.id) || 0)) + 1).toString()
-                setTasks([...tasks, { ...taskData, id: newId }])
+                title: newTask.title,
+                description: newTask.description,
+                due_date: Timestamp.fromDate(new Date(newTask.due_date)),
+                status: newTask.status,
+                priority: newTask.priority,
+                created_at: Timestamp.now(),
+                updated_at: Timestamp.now()
             }
+
+            await addTask(taskData)
 
             // Reset form and close modal
             setNewTask({
                 title: '',
                 description: '',
                 due_date: '',
-                priority: 'medium' as 'low' | 'medium' | 'high',
-                status: 'pending' as 'pending' | 'completed' | 'overdue'
+                priority: 'medium',
+                status: 'pending'
             })
             setShowAddModal(false)
         } catch (error) {
             console.error('Error adding task:', error)
-            alert('Failed to add task. Please try again.')
         }
     }
 
-    // Handle task status update
-    const handleUpdateTaskStatus = async (taskId: string, newStatus: 'pending' | 'completed' | 'overdue') => {
+    // Handle marking a task as complete
+    const handleCompleteTask = async (taskId: string) => {
         try {
-            if (!useLocalTestData) {
-                await updateTask(taskId, { status: newStatus });
-            } else {
-                // For test mode, update local state
-                setTasks(tasks.map(task =>
-                    task.id === taskId ? { ...task, status: newStatus } : task
-                ));
-            }
+            await updateTask(taskId, {
+                status: 'completed',
+                updated_at: Timestamp.now()
+            })
         } catch (error) {
-            console.error('Error updating task:', error);
-
-            // Handle the specific error case for missing documents
-            if (typeof error === 'object' && error !== null && 'message' in error) {
-                const errorMessage = error.message as string;
-                if (errorMessage.includes('No document to update')) {
-                    // Just update the local state for test IDs
-                    setTasks(tasks.map(task =>
-                        task.id === taskId ? { ...task, status: newStatus } : task
-                    ));
-                    return;
-                }
-            }
-
-            // Show error message for other errors
-            alert('Failed to update task. Please try again.');
+            console.error('Error completing task:', error)
         }
-    };
+    }
 
-    // Handle task deletion
+    // Handle deleting a task
     const handleDeleteTask = async (taskId: string) => {
-        if (!confirm('Are you sure you want to delete this task?')) return
-
         try {
-            if (!useLocalTestData) {
-                await deleteTask(taskId)
-            } else {
-                // For test mode, update local state
-                setTasks(tasks.filter(task => task.id !== taskId))
-            }
+            await deleteTask(taskId)
         } catch (error) {
             console.error('Error deleting task:', error)
-            alert('Failed to delete task. Please try again.')
         }
     }
 
     // Convert tasks to calendar events
-    const getCalendarEvents = () => {
-        return tasks.map(task => ({
-            id: task.id,
-            title: task.title,
-            start: task.due_date instanceof Timestamp
-                ? task.due_date.toDate()
-                : new Date(task.due_date),
-            end: task.due_date instanceof Timestamp
-                ? new Date(task.due_date.toDate().getTime() + 3600000) // Add 1 hour
-                : new Date(new Date(task.due_date).getTime() + 3600000),
-            allDay: true,
-            status: task.status,
-            priority: task.priority
-        }))
+    const tasksToEvents = (): CalendarEvent[] => {
+        return tasks.map(task => {
+            const dueDate = task.due_date.toDate()
+            // Create an end date that's the same as the due date but at the end of the day
+            const endDate = new Date(dueDate)
+            endDate.setHours(23, 59, 59)
+
+            return {
+                id: task.id,
+                title: task.title,
+                start: dueDate,
+                end: endDate,
+                allDay: true,
+                status: task.status,
+                priority: task.priority
+            }
+        })
+    }
+
+    // Get priority color
+    const getPriorityColor = (priority: string) => {
+        switch (priority) {
+            case 'high': return 'bg-red-500'
+            case 'medium': return 'bg-yellow-500'
+            case 'low': return 'bg-blue-500'
+            default: return 'bg-gray-500'
+        }
+    }
+
+    // Get status color
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'completed': return 'bg-green-100 text-green-800 border-green-200'
+            case 'overdue': return 'bg-red-100 text-red-800 border-red-200'
+            default: return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+        }
+    }
+
+    // Get status icon
+    const getStatusIcon = (status: string) => {
+        switch (status) {
+            case 'completed': return <FaCheck className="text-green-600" />
+            case 'overdue': return <FaExclamationTriangle className="text-red-600" />
+            default: return <FaClock className="text-yellow-600" />
+        }
     }
 
     return (
-        <div className="space-y-6">
+        <div className="p-6 space-y-6">
             {/* Page Header */}
             <div className="bg-white rounded-xl shadow-sm p-6">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                     <div>
                         <h1 className="text-2xl font-semibold">Task Management</h1>
-                        <p className="text-sm md:text-base text-gray-600">Manage and track your farm tasks</p>
+                        <p className="text-sm md:text-base text-gray-600">Organize and track your farm tasks</p>
                     </div>
-                    <div className="mt-4 md:mt-0 flex items-center">
-                        <span className="text-sm text-gray-500 mr-2">Data Source:</span>
-                        <Switch
-                            checked={useLocalTestData}
-                            onChange={() => setUseLocalTestData(!useLocalTestData)}
-                            label={useLocalTestData ? "Test" : "Live"}
-                        />
+                    <div className="mt-4 md:mt-0 flex items-center gap-4">
+                        <button
+                            className="btn btn-primary gap-2"
+                            onClick={() => setShowAddModal(true)}
+                        >
+                            <FaPlus /> Add Task
+                        </button>
+                        <button
+                            className={`btn ${calendarView ? 'btn-primary' : 'btn-outline'}`}
+                            onClick={() => setCalendarView(!calendarView)}
+                        >
+                            Calendar View
+                        </button>
                     </div>
                 </div>
             </div>
 
-            {/* Task Actions */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-between">
-                <div className="flex gap-2">
-                    <button
-                        className="btn btn-primary"
-                        onClick={() => setShowAddModal(true)}
-                    >
-                        <FaPlus className="mr-2" /> Add Task
-                    </button>
-                    <div className="dropdown dropdown-end">
-                        <button className="btn btn-outline">
-                            <FaFilter className="mr-2" /> Filter
-                        </button>
+            {/* Task Filters */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+                <div className="flex flex-wrap gap-4">
+                    <div className="flex items-center">
+                        <FaFilter className="text-gray-400 mr-2" />
+                        <span className="text-sm font-medium text-gray-700">Filter:</span>
                     </div>
-                    <div className="dropdown dropdown-end">
-                        <button className="btn btn-outline">
-                            <FaSort className="mr-2" /> Sort
-                        </button>
-                    </div>
-                </div>
-                <div className="flex gap-2">
                     <button
-                        className={`btn ${filter === 'all' ? 'btn-primary' : 'btn-outline'}`}
+                        className={`btn btn-sm ${filter === 'all' ? 'btn-primary' : 'btn-outline'}`}
                         onClick={() => setFilter('all')}
                     >
                         All
                     </button>
                     <button
-                        className={`btn ${filter === 'pending' ? 'btn-primary' : 'btn-outline'}`}
+                        className={`btn btn-sm ${filter === 'pending' ? 'btn-primary' : 'btn-outline'}`}
                         onClick={() => setFilter('pending')}
                     >
-                        <FaClock className="mr-1" /> Pending
+                        Pending
                     </button>
                     <button
-                        className={`btn ${filter === 'completed' ? 'btn-primary' : 'btn-outline'}`}
+                        className={`btn btn-sm ${filter === 'completed' ? 'btn-primary' : 'btn-outline'}`}
                         onClick={() => setFilter('completed')}
                     >
-                        <FaCheck className="mr-1" /> Completed
+                        Completed
                     </button>
                     <button
-                        className={`btn ${filter === 'overdue' ? 'btn-primary' : 'btn-outline'}`}
+                        className={`btn btn-sm ${filter === 'overdue' ? 'btn-primary' : 'btn-outline'}`}
                         onClick={() => setFilter('overdue')}
                     >
-                        <FaExclamationTriangle className="mr-1" /> Overdue
+                        Overdue
                     </button>
                 </div>
             </div>
 
             {/* Task List */}
-            {!calendarView ? (
+            {!calendarView && (
                 <div className="bg-white rounded-xl shadow-sm p-6">
                     <h2 className="text-xl font-semibold mb-6">Tasks</h2>
-
                     {loading ? (
-                        <div className="flex justify-center items-center h-40">
-                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                        <div className="text-center py-8">
+                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
+                            <p className="mt-4 text-gray-600">Loading tasks...</p>
                         </div>
                     ) : tasks.length === 0 ? (
-                        <div className="text-center py-10 text-gray-500">
+                        <div className="text-center py-8 text-gray-500">
                             <p>No tasks found. Add a new task to get started.</p>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="table w-full">
-                                <thead>
-                                    <tr>
-                                        <th>Title</th>
-                                        <th>Due Date</th>
-                                        <th>Priority</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {tasks.map(task => (
-                                        <tr key={task.id} className="hover">
-                                            <td>
-                                                <div>
-                                                    <div className="font-bold">{task.title}</div>
-                                                    <div className="text-sm opacity-50">{task.description}</div>
+                        <div className="space-y-4">
+                            {tasks.map((task) => (
+                                <div
+                                    key={task.id}
+                                    className={`p-4 rounded-lg border ${getStatusColor(task.status)}`}
+                                >
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex items-start gap-3">
+                                            <div className={`w-3 h-3 mt-1 rounded-full ${getPriorityColor(task.priority)} flex-shrink-0`} />
+                                            <div>
+                                                <h3 className={`font-medium ${task.status === 'completed' ? 'line-through text-gray-500' : ''}`}>
+                                                    {task.title}
+                                                </h3>
+                                                {task.description && (
+                                                    <p className="text-sm text-gray-600 mt-1">{task.description}</p>
+                                                )}
+                                                <div className="flex items-center gap-2 mt-2">
+                                                    <div className="flex items-center text-xs text-gray-500">
+                                                        {getStatusIcon(task.status)}
+                                                        <span className="ml-1">
+                                                            {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
+                                                        </span>
+                                                    </div>
+                                                    <div className="text-xs text-gray-500">
+                                                        Due: {new Date(task.due_date.toDate()).toLocaleDateString()}
+                                                    </div>
                                                 </div>
-                                            </td>
-                                            <td>
-                                                {task.due_date instanceof Timestamp
-                                                    ? new Date(task.due_date.toDate()).toLocaleDateString()
-                                                    : new Date(task.due_date).toLocaleDateString()}
-                                            </td>
-                                            <td>
-                                                <span className={`badge ${task.priority === 'high' ? 'badge-error' :
-                                                    task.priority === 'medium' ? 'badge-warning' : 'badge-info'
-                                                    }`}>
-                                                    {task.priority}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <span className={`badge ${task.status === 'completed' ? 'badge-success' :
-                                                    task.status === 'overdue' ? 'badge-error' : 'badge-warning'
-                                                    }`}>
-                                                    {task.status}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <div className="flex space-x-2">
-                                                    {task.status !== 'completed' && (
-                                                        <button
-                                                            className="btn btn-xs btn-success"
-                                                            onClick={() => handleUpdateTaskStatus(task.id, 'completed')}
-                                                        >
-                                                            <FaCheck />
-                                                        </button>
-                                                    )}
-                                                    {task.status === 'completed' && (
-                                                        <button
-                                                            className="btn btn-xs btn-warning"
-                                                            onClick={() => handleUpdateTaskStatus(task.id, 'pending')}
-                                                        >
-                                                            <FaClock />
-                                                        </button>
-                                                    )}
-                                                    <button
-                                                        className="btn btn-xs btn-error"
-                                                        onClick={() => handleDeleteTask(task.id)}
-                                                    >
-                                                        <FaTimes />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            {task.status !== 'completed' && (
+                                                <button
+                                                    onClick={() => handleCompleteTask(task.id)}
+                                                    className="btn btn-xs btn-circle btn-ghost text-green-600"
+                                                    title="Mark as completed"
+                                                >
+                                                    <FaCheck />
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={() => handleDeleteTask(task.id)}
+                                                className="btn btn-xs btn-circle btn-ghost text-red-600"
+                                                title="Delete task"
+                                            >
+                                                <FaTimes />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     )}
                 </div>
-            ) : (
-                <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-                    <div style={{ height: 600 }}>
+            )}
+
+            {/* Calendar View */}
+            {calendarView && (
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                    <h2 className="text-xl font-semibold mb-6">Task Calendar</h2>
+                    <div className="h-[600px]">
                         <Calendar
                             localizer={localizer}
-                            events={getCalendarEvents()}
+                            events={tasksToEvents()}
                             startAccessor="start"
                             endAccessor="end"
                             style={{ height: '100%' }}
-                            eventPropGetter={(event: CalendarEvent) => {
+                            views={['month', 'week', 'day']}
+                            eventPropGetter={(event: any) => {
                                 let backgroundColor = '#3788d8'
-                                if (event.status === 'completed') backgroundColor = '#10B981'
-                                else if (event.status === 'overdue') backgroundColor = '#EF4444'
-                                else if (event.priority === 'high') backgroundColor = '#F59E0B'
-
+                                if (event.status === 'completed') {
+                                    backgroundColor = '#10b981'
+                                } else if (event.status === 'overdue') {
+                                    backgroundColor = '#ef4444'
+                                } else if (event.priority === 'high') {
+                                    backgroundColor = '#f97316'
+                                } else if (event.priority === 'medium') {
+                                    backgroundColor = '#eab308'
+                                }
                                 return { style: { backgroundColor } }
                             }}
                             onSelectEvent={(event: any) => {

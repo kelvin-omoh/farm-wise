@@ -15,8 +15,21 @@ import {
     onSnapshot,
     writeBatch,
     DocumentReference,
-    serverTimestamp
 } from 'firebase/firestore'
+import { enableIndexedDbPersistence } from 'firebase/firestore'
+
+// Enable offline persistence
+try {
+    enableIndexedDbPersistence(db).catch((err) => {
+        if (err.code === 'failed-precondition') {
+            console.warn('Multiple tabs open, persistence can only be enabled in one tab at a a time.');
+        } else if (err.code === 'unimplemented') {
+            console.warn('The current browser does not support all of the features required to enable persistence');
+        }
+    });
+} catch (err) {
+    console.warn('Error enabling offline persistence:', err);
+}
 
 // Define types
 export interface SensorReading {
@@ -90,28 +103,49 @@ export const createFarm = async (farmData: any) => {
 }
 
 // Device services
-export const getDevices = async (farmId: string) => {
-    const devicesRef = collection(db, 'devices')
-    const q = query(devicesRef, where('farm_id', '==', farmId))
-    const querySnapshot = await getDocs(q)
+export const getDevices = async (userId: string) => {
+    try {
+        // Use a simpler query without orderBy to avoid index requirements
+        const devicesRef = collection(db, 'devices');
+        const q = query(
+            devicesRef,
+            where('user_id', '==', userId)
+        );
 
-    const devices: any[] = []
-    querySnapshot.forEach((doc) => {
-        devices.push({ id: doc.id, ...doc.data() })
-    })
+        const querySnapshot = await getDocs(q);
 
-    return devices
-}
+        const devices: any[] = [];
+        querySnapshot.forEach((doc) => {
+            devices.push({ id: doc.id, ...doc.data() });
+        });
+
+        // Sort in memory instead of using orderBy in the query
+        devices.sort((a, b) => {
+            const aTime = a.created_at?.seconds || 0;
+            const bTime = b.created_at?.seconds || 0;
+            return bTime - aTime; // Sort by created_at in descending order
+        });
+
+        console.log(`Retrieved ${devices.length} devices for user:`, userId);
+        return devices;
+    } catch (error) {
+        console.error('Error fetching devices:', error);
+        return [];
+    }
+};
 
 export const addDevice = async (deviceData: any) => {
-    const devicesRef = collection(db, 'devices')
+    console.log('Adding device with user_id:', deviceData.user_id);
+
+    const devicesRef = collection(db, 'devices');
     const docRef = await addDoc(devicesRef, {
         ...deviceData,
         created_at: Timestamp.now()
-    })
+    });
 
-    return { id: docRef.id, ...deviceData }
-}
+    console.log('Device added successfully with ID:', docRef.id);
+    return { id: docRef.id, ...deviceData };
+};
 
 // Sensor readings services
 export const getLatestSensorReadings = async (farmId: string) => {
@@ -155,48 +189,81 @@ export const getWeatherData = async (farmId: string) => {
 };
 
 // Task services
-export const getTasks = async (farmId: string, status?: string) => {
+export const getTasks = async (farmId: string): Promise<Task[] | { data: Task[], error: any }> => {
     try {
         const tasksRef = collection(db, 'tasks');
-
-        // Build query based on parameters
-        let q = query(tasksRef, where('farm_id', '==', farmId));
-
-        if (status) {
-            q = query(q, where('status', '==', status));
-        }
-
-        // Add sorting by due date
-        q = query(q, orderBy('due_date', 'asc'));
+        const q = query(
+            tasksRef,
+            where('farm_id', '==', farmId),
+            orderBy('due_date', 'asc')
+        );
 
         const querySnapshot = await getDocs(q);
 
         const tasks: Task[] = [];
         querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            tasks.push({
-                id: doc.id,
-                farm_id: data.farm_id,
-                title: data.title,
-                description: data.description || '',
-                due_date: data.due_date,
-                status: data.status,
-                priority: data.priority,
-                assigned_to: data.assigned_to,
-                created_at: data.created_at,
-                updated_at: data.updated_at
-            });
+            tasks.push({ id: doc.id, ...doc.data() } as Task);
         });
 
         return tasks;
     } catch (error) {
         console.error('Error fetching tasks:', error);
-        throw error;
+        return { data: [], error };
     }
 };
 
-// Set up real-time task listener
+// Add this function to check and update overdue tasks
+export const checkAndUpdateOverdueTasks = async (farmId: string) => {
+    try {
+        const tasksRef = collection(db, 'tasks');
+        const q = query(
+            tasksRef,
+            where('farm_id', '==', farmId),
+            where('status', '==', 'pending')
+        );
+
+        const querySnapshot = await getDocs(q);
+        const batch = writeBatch(db);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        let updatedCount = 0;
+
+        querySnapshot.forEach((doc) => {
+            const task = doc.data();
+            const dueDate = task.due_date.toDate();
+
+            if (dueDate < today) {
+                batch.update(doc.ref, {
+                    status: 'overdue',
+                    updated_at: Timestamp.now()
+                });
+                updatedCount++;
+            }
+        });
+
+        if (updatedCount > 0) {
+            await batch.commit();
+            console.log(`Updated ${updatedCount} tasks to overdue status`);
+        }
+
+        return updatedCount;
+    } catch (error) {
+        console.error('Error checking overdue tasks:', error);
+        return 0;
+    }
+};
+
+// Update the subscribeToTasks function to add logging
 export const subscribeToTasks = (farmId: string, callback: (tasks: Task[]) => void) => {
+    console.log('Setting up task subscription for farmId:', farmId);
+
+    // First check and update any overdue tasks
+    checkAndUpdateOverdueTasks(farmId).catch(error => {
+        console.error('Error checking overdue tasks:', error);
+    });
+
+    // Set up the real-time listener
     const tasksRef = collection(db, 'tasks');
     const q = query(
         tasksRef,
@@ -204,24 +271,16 @@ export const subscribeToTasks = (farmId: string, callback: (tasks: Task[]) => vo
         orderBy('due_date', 'asc')
     );
 
+    console.log('Task query created with farmId:', farmId);
+
+    // Return the unsubscribe function directly
     return onSnapshot(q, (querySnapshot) => {
         const tasks: Task[] = [];
         querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            tasks.push({
-                id: doc.id,
-                farm_id: data.farm_id,
-                title: data.title,
-                description: data.description || '',
-                due_date: data.due_date,
-                status: data.status,
-                priority: data.priority,
-                assigned_to: data.assigned_to,
-                created_at: data.created_at,
-                updated_at: data.updated_at
-            });
+            tasks.push({ id: doc.id, ...doc.data() } as Task);
         });
 
+        console.log(`Retrieved ${tasks.length} tasks for farmId:`, farmId);
         callback(tasks);
     }, (error) => {
         console.error('Error subscribing to tasks:', error);
@@ -712,15 +771,19 @@ const testHistoricalWeather = {
     ]
 };
 
-// Add a new task
+// Update the addTask function to include timestamps
 export const addTask = async (taskData: Omit<Task, 'id'>) => {
+    console.log('Adding task with farm_id:', taskData.farm_id);
+
     try {
         const tasksRef = collection(db, 'tasks');
         const docRef = await addDoc(tasksRef, {
             ...taskData,
-            created_at: serverTimestamp()
+            created_at: Timestamp.now(),
+            updated_at: Timestamp.now()
         });
 
+        console.log('Task added successfully with ID:', docRef.id);
         return { id: docRef.id, ...taskData };
     } catch (error) {
         console.error('Error adding task:', error);
@@ -734,7 +797,7 @@ export const updateTask = async (taskId: string, updates: Partial<Task>) => {
         const taskRef = doc(db, 'tasks', taskId);
         await updateDoc(taskRef, {
             ...updates,
-            updated_at: serverTimestamp()
+            updated_at: Timestamp.now()
         });
 
         return { id: taskId, ...updates };
@@ -795,4 +858,153 @@ export const getDueTasks = async (farmId: string) => {
 export const isIndexError = (error: any): boolean => {
     return error?.message?.includes('requires an index') ||
         error?.message?.includes('index does not exist');
+};
+
+// Add a function to delete a device
+export const deleteDevice = async (deviceId: string) => {
+    try {
+        const deviceRef = doc(db, 'devices', deviceId);
+        await deleteDoc(deviceRef);
+        console.log('Device deleted successfully:', deviceId);
+        return true;
+    } catch (error) {
+        console.error('Error deleting device:', error);
+        throw error;
+    }
+};
+
+// Add this function to update device approval status
+export const updateDeviceApproval = async (deviceId: string, approvalData: any) => {
+    try {
+        const deviceRef = doc(db, 'devices', deviceId);
+
+        await updateDoc(deviceRef, {
+            'approval': approvalData,
+            'updated_at': Timestamp.now()
+        });
+
+        console.log('Device approval updated successfully:', deviceId);
+        return true;
+    } catch (error) {
+        console.error('Error updating device approval:', error);
+        throw error;
+    }
+};
+
+// Add this function to get device health data
+export const getDeviceHealth = async (deviceId: string) => {
+    try {
+        const healthRef = collection(db, 'device_health');
+        const q = query(
+            healthRef,
+            where('device_id', '==', deviceId),
+            orderBy('timestamp', 'desc'),
+            limit(1)
+        );
+
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            return null;
+        }
+
+        const doc = querySnapshot.docs[0];
+        return { id: doc.id, ...doc.data() };
+    } catch (error) {
+        console.error('Error fetching device health:', error);
+        return null;
+    }
+};
+
+// Create a new order
+export const createOrder = async (orderData: any) => {
+    try {
+        const ordersRef = collection(db, 'orders');
+        const docRef = await addDoc(ordersRef, {
+            ...orderData,
+            created_at: Timestamp.now()
+        });
+
+        console.log('Order created successfully with ID:', docRef.id);
+        return { id: docRef.id, ...orderData };
+    } catch (error) {
+        console.error('Error creating order:', error);
+        throw error;
+    }
+};
+
+// Update the getUserOrders function with proper type handling
+export const getUserOrders = async (userId: string) => {
+    try {
+        // Use a simpler query that doesn't require a composite index
+        const ordersRef = collection(db, 'orders');
+        const q = query(
+            ordersRef,
+            where('user_id', '==', userId)
+            // Remove the orderBy clause that's causing the index error
+        );
+
+        const querySnapshot = await getDocs(q);
+
+        // Process and sort the results client-side instead
+        const orders = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        })) as any[]; // Use any[] to avoid TypeScript errors
+
+        // Sort by created_at manually (if needed)
+        orders.sort((a, b) => {
+            const dateA = a.created_at?.seconds || 0;
+            const dateB = b.created_at?.seconds || 0;
+            return dateB - dateA; // descending order (newest first)
+        });
+
+        return orders;
+    } catch (error) {
+        console.error('Index error, falling back to simple query:', error);
+
+        // Fallback to an even simpler query if needed
+        const ordersRef = collection(db, 'orders');
+        const simpleQuery = query(ordersRef, where('user_id', '==', userId));
+        const querySnapshot = await getDocs(simpleQuery);
+
+        return querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+    }
+};
+
+// Get a specific order
+export const getOrder = async (orderId: string) => {
+    try {
+        const orderRef = doc(db, 'orders', orderId);
+        const docSnap = await getDoc(orderRef);
+
+        if (docSnap.exists()) {
+            return { id: docSnap.id, ...docSnap.data() };
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.error('Error fetching order:', error);
+        throw error;
+    }
+};
+
+// Add this function to update an existing order
+export const updateOrder = async (orderId: string, orderData: any) => {
+    try {
+        const orderRef = doc(db, 'orders', orderId);
+        await updateDoc(orderRef, {
+            ...orderData,
+            updated_at: Timestamp.now()
+        });
+
+        console.log('Order updated successfully:', orderId);
+        return { id: orderId, ...orderData };
+    } catch (error) {
+        console.error('Error updating order:', error);
+        throw error;
+    }
 }; 

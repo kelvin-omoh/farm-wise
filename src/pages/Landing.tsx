@@ -19,6 +19,7 @@ import GridBackground from '../components/GridBackground'
 import { addDoc, collection, Timestamp } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import logo from "../assets/logo.jpeg"
+import { Link } from 'react-router-dom'
 
 const Landing = () => {
     const [showPreloader, setShowPreloader] = useState(true)
@@ -125,7 +126,17 @@ const Landing = () => {
                             </div>
 
                             <div className="flex items-center gap-4">
-                                {/* Replace login/register with Join Waitlist */}
+                                {/* Auth buttons */}
+                                <div className="hidden md:flex items-center gap-3">
+                                    <Link to="/login" className="text-gray-700 hover:text-primary transition-colors">
+                                        Login
+                                    </Link>
+                                    <Link to="/register" className="px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary/5 transition-colors">
+                                        Register
+                                    </Link>
+                                </div>
+
+                                {/* Join Waitlist button */}
                                 <motion.div whileHover={{ scale: 1.05 }}>
                                     <button
                                         onClick={() => setShowWaitlistModal(true)}
@@ -215,12 +226,26 @@ const Landing = () => {
                                             Contact
                                         </button>
                                         <div className="mt-4 pt-4 border-t border-gray-100">
+                                            <Link
+                                                to="/login"
+                                                className="w-full text-left px-4 py-3 rounded-lg hover:bg-primary/5 text-gray-700 hover:text-primary transition-colors flex items-center"
+                                                onClick={() => setShowMobileMenu(false)}
+                                            >
+                                                Login
+                                            </Link>
+                                            <Link
+                                                to="/register"
+                                                className="w-full text-left px-4 py-3 rounded-lg hover:bg-primary/5 text-gray-700 hover:text-primary transition-colors flex items-center"
+                                                onClick={() => setShowMobileMenu(false)}
+                                            >
+                                                Register
+                                            </Link>
                                             <button
                                                 onClick={() => {
                                                     setShowMobileMenu(false)
                                                     setShowWaitlistModal(true)
                                                 }}
-                                                className="w-full px-4 py-3 bg-primary text-white rounded-lg flex items-center justify-center gap-2 hover:bg-primary-dark transition-colors"
+                                                className="w-full mt-2 px-4 py-3 bg-primary text-white rounded-lg flex items-center justify-center gap-2 hover:bg-primary-dark transition-colors"
                                             >
                                                 Join Waitlist
                                                 <FaArrowRight className="w-4 h-4" />

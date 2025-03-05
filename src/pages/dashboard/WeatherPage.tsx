@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { WeatherWidget } from '../../components/dashboard/WeatherWidget'
-import { Switch } from '../../components/ui/Switch'
 import { FaSun, FaCloudRain, FaWind } from 'react-icons/fa'
 import { useAuthStore } from '../../stores/authStore'
 import { useTestData } from '../../hooks/useTestData'
@@ -57,7 +56,7 @@ const testHistoricalWeather = {
 };
 
 const WeatherPage = () => {
-    const [useLocalTestData, setUseLocalTestData] = useState(true)
+    const [/* useLocalTestData */, /* setUseLocalTestData */] = useState(true)
     const { user } = useAuthStore()
     const farmId = user?.farm_id || 'default'
 
@@ -72,16 +71,8 @@ const WeatherPage = () => {
             <div className="bg-white rounded-xl shadow-sm p-6">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                     <div>
-                        <h1 className="text-2xl font-semibold">Weather Forecast</h1>
-                        <p className="text-sm md:text-base text-gray-600">Detailed weather information for your farm</p>
-                    </div>
-                    <div className="mt-4 md:mt-0 flex items-center">
-                        <span className="text-sm text-gray-500 mr-2">Data Source:</span>
-                        <Switch
-                            checked={useLocalTestData}
-                            onChange={() => setUseLocalTestData(!useLocalTestData)}
-                            label={useLocalTestData ? "Test" : "Live"}
-                        />
+                        <h1 className="text-2xl font-semibold">Weather Monitoring</h1>
+                        <p className="text-sm md:text-base text-gray-600">Track weather conditions and forecasts</p>
                     </div>
                 </div>
             </div>

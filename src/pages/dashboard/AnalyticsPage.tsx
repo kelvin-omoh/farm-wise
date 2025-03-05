@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { FarmStatistics } from '../../components/dashboard/FarmStatistics'
 import { StatisticsGraph } from '../../components/dashboard/StatisticsGraph'
 import { FinancialReports } from '../../components/dashboard/FinancialReports'
-import { Switch } from '../../components/ui/Switch'
 import { FaChartLine, FaChartBar, FaChartPie, FaChartArea } from 'react-icons/fa'
 import { useTestData } from '../../hooks/useTestData'
 import { getFarmAnalytics } from '../../services/firebaseService'
@@ -76,7 +75,7 @@ const testAnalyticsData = {
 };
 
 const AnalyticsPage = () => {
-    const [useLocalTestData, setUseLocalTestData] = useState(true)
+    const [useLocalTestData, /* setUseLocalTestData */] = useState(true)
     const [activeTab, setActiveTab] = useState('overview')
     const { user } = useAuthStore()
     const farmId = user?.farm_id || 'default'
@@ -116,14 +115,6 @@ const AnalyticsPage = () => {
                     <div>
                         <h1 className="text-2xl font-semibold">Farm Analytics</h1>
                         <p className="text-sm md:text-base text-gray-600">Analyze your farm's performance and trends</p>
-                    </div>
-                    <div className="mt-4 md:mt-0 flex items-center">
-                        <span className="text-sm text-gray-500 mr-2">Data Source:</span>
-                        <Switch
-                            checked={useLocalTestData}
-                            onChange={() => setUseLocalTestData(!useLocalTestData)}
-                            label={useLocalTestData ? "Test" : "Live"}
-                        />
                     </div>
                 </div>
             </div>

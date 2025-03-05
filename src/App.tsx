@@ -3,13 +3,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Layout from './components/Layout'
 import Landing from './pages/Landing'
 import Dashboard from './pages/Dashboard'
-import Marketplace from './pages/marketplace/Marketplace'
 import DevicesPage from './pages/dashboard/DevicesPage'
 import AnalyticsPage from './pages/dashboard/AnalyticsPage'
 import WeatherPage from './pages/dashboard/WeatherPage'
 import TasksPage from './pages/dashboard/TasksPage'
 import NetworkingPage from './pages/dashboard/NetworkingPage'
 import ProfilePage from './pages/dashboard/ProfilePage'
+import FarmsPage from './pages/dashboard/FarmsPage'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import NotFound from './pages/NotFound'
@@ -17,6 +17,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
 import { TestDataProvider } from './providers/TestDataProvider'
+import MarketplacePage from './pages/dashboard/MarketplacePage'
 
 const queryClient = new QueryClient()
 
@@ -37,13 +38,14 @@ function App() {
                   </ProtectedRoute>
                 }>
                   <Route index element={<Dashboard />} />
-                  <Route path="marketplace" element={<Marketplace />} />
                   <Route path="devices" element={<DevicesPage />} />
+                  <Route path="farms" element={<FarmsPage />} />
                   <Route path="analytics" element={<AnalyticsPage />} />
                   <Route path="weather" element={<WeatherPage />} />
                   <Route path="tasks" element={<TasksPage />} />
                   <Route path="networking" element={<NetworkingPage />} />
                   <Route path="profile" element={<ProfilePage />} />
+                  <Route path="marketplace" element={<MarketplacePage />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>

@@ -9,7 +9,6 @@ import { Timestamp } from 'firebase/firestore'
 import { FaPlus, FaTimes } from 'react-icons/fa'
 import { useTestDataStore } from '../../stores/testDataStore'
 import { isIndexError } from '../../services/firebaseService'
-import IndexNotification from '../../components/ui/IndexNotification'
 
 // Define types
 interface CalendarEvent {
@@ -275,7 +274,7 @@ export const CropCalendar = () => {
 
     return (
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-            {showIndexNotification && <IndexNotification />}
+
 
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold">Farm Calendar</h2>

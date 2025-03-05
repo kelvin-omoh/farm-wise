@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react'
-import { FaQrcode, FaPlus, FaCheck } from 'react-icons/fa'
+import { FaQrcode, FaPlus, FaCheck, FaShoppingCart } from 'react-icons/fa'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '../../stores/authStore'
+import { getUserOrders } from '../../services/firebaseService'
+import { collection, query, where, getDocs } from 'firebase/firestore'
+import { db } from '../../config/firebase'
 
 // Add this interface to define the device data structure
 interface DeviceData {
@@ -10,16 +13,47 @@ interface DeviceData {
     location?: string;
     description?: string;
     id?: string;
+    farm_id?: string;
+}
+
+// Add this interface to define the order item structure
+interface OrderItem {
+    id?: string;
+    type: string;
+    name?: string;
+    device_type?: string;
+    registered?: boolean;
+    order_id?: string;
+    price?: number;
+    currency?: string;
+}
+
+// Update the Order interface to match your actual data structure
+interface Order {
+    id: string;
+    status: string;
+    product_id?: string;
+    product_name?: string;
+    device_id?: string;
+    amount?: number;
+    currency?: string;
+    payment_reference?: string;
+    flutterwave_reference?: number;
+    payment_details?: any;
+    created_at?: any;
+    updated_at?: any;
+    user_id?: string;
 }
 
 // Then the props interface
 interface DeviceRegistrationProps {
-    onSubmit: (deviceData: DeviceData) => void;
+    onSubmit: (deviceData: DeviceData) => Promise<any>;
     onCancel: () => void;
+    farmId?: string; // Make it optional to maintain backward compatibility
 }
 
 // Then update the component definition
-export const DeviceRegistration = ({ onSubmit, onCancel }: DeviceRegistrationProps) => {
+export const DeviceRegistration = ({ onSubmit, onCancel, farmId }: DeviceRegistrationProps) => {
     const [isRegistering, setIsRegistering] = useState(false)
     const [registrationMethod, setRegistrationMethod] = useState<'qr' | 'manual' | null>(null)
     const [deviceId, setDeviceId] = useState('')
@@ -29,14 +63,92 @@ export const DeviceRegistration = ({ onSubmit, onCancel }: DeviceRegistrationPro
     const [isScanning, setIsScanning] = useState(false)
     const [registrationSuccess, setRegistrationSuccess] = useState(false)
     const [error, setError] = useState('')
+    const [orderedDevices, setOrderedDevices] = useState<any[]>([])
+    const [isLoadingOrders, setIsLoadingOrders] = useState(false)
 
     const { user } = useAuthStore()
 
     useEffect(() => {
         if (user) {
             console.log("User is logged in:", user.email);
+            fetchOrderedDevices();
         }
     }, [user]);
+
+    // Update the fetchRegisteredDevices function to check for device_id
+    const fetchRegisteredDevices = async () => {
+        if (!user) return [];
+
+        try {
+            // Query the devices collection to find all devices registered by this user
+            const devicesRef = collection(db, 'devices');
+            const q = query(devicesRef, where('owner_id', '==', user.uid));
+            const querySnapshot = await getDocs(q);
+
+            // Log the raw device data for debugging
+            console.log("All user devices:", querySnapshot.docs.map(doc => doc.data()));
+
+            // Extract the device IDs - check both id and device_id fields
+            const registeredIds = querySnapshot.docs.map(doc => {
+                const data = doc.data();
+                return data.device_id || '';
+            }).filter(id => id !== '');
+
+            console.log("Registered device IDs:", registeredIds);
+            return registeredIds;
+        } catch (err) {
+            console.error('Error fetching registered devices:', err);
+            return [];
+        }
+    };
+
+    // Update the fetchOrderedDevices function
+    const fetchOrderedDevices = async () => {
+        if (!user) return;
+
+        setIsLoadingOrders(true);
+        try {
+            // Get already registered device IDs
+            const registeredDeviceIds = await fetchRegisteredDevices();
+
+            // Use a simpler query that doesn't require complex indexes
+            const userOrders = await getUserOrders(user.uid) as Order[];
+
+            console.log(userOrders);
+
+            // Process the orders client-side instead of in the query
+            const devices: OrderItem[] = [];
+
+            // Loop through orders and extract devices
+            for (const order of userOrders) {
+                // Only process completed orders with device_id
+                if (order.status === 'completed' && order.id) {
+                    // Skip already registered devices
+                    if (registeredDeviceIds.includes(order.id)) {
+                        continue;
+                    }
+
+                    // Create a device object from the order
+                    devices.push({
+                        id: order.device_id,
+                        name: order.product_name || 'IoT Device',
+                        type: 'device',
+                        device_type: order.product_id?.includes('bot') ? 'Fermwise Bot' : 'Fermwise Bot',
+                        order_id: order.id,
+                        price: order.amount,
+                        currency: order.currency
+                    });
+                }
+            }
+
+            setOrderedDevices(devices);
+        } catch (err) {
+            console.error('Error fetching ordered devices:', err);
+            setError('Failed to load your purchased devices');
+        } finally {
+            setIsLoadingOrders(false);
+        }
+    };
 
     const handleStartRegistration = () => {
         setIsRegistering(true)
@@ -69,7 +181,7 @@ export const DeviceRegistration = ({ onSubmit, onCancel }: DeviceRegistrationPro
         setRegistrationMethod('manual')
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
         // Validation
@@ -83,20 +195,30 @@ export const DeviceRegistration = ({ onSubmit, onCancel }: DeviceRegistrationPro
             name: deviceName,
             type: deviceType,
             location: location,
-            id: deviceId || undefined
+            id: deviceId || undefined,
+            farm_id: farmId
         }
 
-        // Call the onSubmit prop with the device data
-        onSubmit(deviceData)
+        try {
+            setError('') // Clear any previous errors
+            setRegistrationSuccess(false) // Reset success state
 
-        // Show success message
-        setRegistrationSuccess(true)
+            // Call the onSubmit prop with the device data
+            await onSubmit(deviceData)
 
-        // Reset form after 2 seconds
-        setTimeout(() => {
-            setIsRegistering(false)
-            setRegistrationMethod(null)
-        }, 2000)
+            // Show success message
+            setRegistrationSuccess(true)
+
+            // Reset form after 2 seconds
+            setTimeout(() => {
+                setIsRegistering(false)
+                setRegistrationMethod(null)
+            }, 2000)
+        } catch (err) {
+            console.error('Error registering device:', err)
+            setError(`Failed to register device: ${err instanceof Error ? err.message : String(err)}`)
+            setRegistrationSuccess(false) // Ensure success message is not shown
+        }
     }
 
     return (
@@ -112,6 +234,64 @@ export const DeviceRegistration = ({ onSubmit, onCancel }: DeviceRegistrationPro
                     </button>
                 )}
             </div>
+
+            {!isRegistering && (
+                <div className="mb-6 border-b pb-6">
+                    <div className="flex items-center mb-4">
+                        <FaShoppingCart className="text-primary mr-2" />
+                        <h3 className="text-lg font-medium">Your Purchased Devices</h3>
+                    </div>
+
+                    {isLoadingOrders ? (
+                        <div className="text-center py-4">
+                            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary mx-auto"></div>
+                            <p className="mt-2 text-sm text-gray-500">Loading your purchased devices...</p>
+                        </div>
+                    ) : orderedDevices.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {orderedDevices.map((device, index) => (
+                                <div
+                                    key={index}
+                                    className="p-4 border border-gray-200 rounded-md hover:bg-gray-50 transition-colors"
+                                >
+                                    <div className="flex flex-col h-full">
+                                        <div>
+                                            <h4 className="font-medium">{device.name || `Device ${index + 1}`}</h4>
+                                            <p className="text-sm text-gray-500 mb-2">
+                                                {device.device_type || 'IoT Device'} • Order #{device.order_id?.substring(0, 8)}
+                                            </p>
+                                        </div>
+                                        <div className="mt-auto pt-2">
+                                            <button
+                                                onClick={() => {
+                                                    setDeviceId(device.id || '')
+                                                    setDeviceType(device.device_type || 'soil_sensor')
+                                                    setDeviceName(device.name || '')
+                                                    setRegistrationMethod('manual')
+                                                    setIsRegistering(true)
+                                                }}
+                                                className="btn btn-sm btn-primary w-full"
+                                            >
+                                                Add to Farm
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="bg-gray-50 rounded-md p-4 text-center">
+                            <p className="text-gray-600">
+                                {isLoadingOrders ? 'Loading your devices...' :
+                                    'All your purchased devices have been registered or you haven\'t purchased any devices yet.'}
+                            </p>
+                            <a href="/dashboard/marketplace" className="text-primary hover:underline mt-2 inline-block">
+                                Visit Marketplace
+                            </a>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {isRegistering && !registrationMethod && (
                 <motion.div
@@ -317,7 +497,7 @@ export const DeviceRegistration = ({ onSubmit, onCancel }: DeviceRegistrationPro
                 </motion.div>
             )}
 
-            {!isRegistering && !registrationSuccess && (
+            {!isRegistering && !registrationSuccess && !orderedDevices.length && (
                 <div className="text-center py-8 text-gray-500">
                     <p>Register your IoT devices to start monitoring your farm in real-time</p>
                 </div>
