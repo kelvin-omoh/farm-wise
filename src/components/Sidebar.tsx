@@ -35,7 +35,7 @@ const Sidebar = () => {
                     <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center text-white">
                         <FaLeaf className="w-5 h-5" />
                     </div>
-                    <span className="text-xl font-semibold text-primary ml-2">Fermwise</span>
+                    <span className="text-xl font-semibold text-primary ml-2">FermWise</span>
                 </Link>
             </div>
 

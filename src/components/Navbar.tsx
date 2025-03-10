@@ -12,7 +12,7 @@ const Navbar = () => {
                 <div className="flex items-center justify-between">
                     <Link to="/" className="flex items-center gap-3">
                         <img src="/logo.jpeg" alt="Logo" className="h-8 w-8" />
-                        <span className="text-xl font-semibold text-primary">Fermwise</span>
+                        <span className="text-xl font-semibold text-primary">FermWise</span>
                     </Link>
 
                     <div className="flex items-center gap-4">

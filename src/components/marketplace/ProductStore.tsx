@@ -27,11 +27,11 @@ interface Product {
 
 const products: Product[] = [
     {
-        id: 'fermwise-bot-basic',
+        id: 'FermWise-bot-basic',
         name: 'FermWise Bot - Basic',
         description: 'Complete AI-powered farming solution with basic sensors for small farms',
         price: 25000, // in Naira
-        image: '/images/fermwise-bot-basic.jpg',
+        image: '/images/FermWise-bot-basic.jpg',
         features: [
             'Temperature & Humidity Sensors',
             'Soil Moisture Monitoring',
@@ -42,11 +42,11 @@ const products: Product[] = [
         type: 'smart-device'
     },
     {
-        id: 'fermwise-bot-pro',
+        id: 'FermWise-bot-pro',
         name: 'FermWise Bot - Pro',
         description: 'Advanced farming solution with premium sensors and extended AI capabilities',
         price: 45000, // in Naira
-        image: '/images/fermwise-bot-pro.jpg',
+        image: '/images/FermWise-bot-pro.jpg',
         features: [
             'All Basic Features',
             'Light Intensity Sensors',
@@ -59,11 +59,11 @@ const products: Product[] = [
         type: 'smart-device'
     },
     {
-        id: 'fermwise-bot-enterprise',
+        id: 'FermWise-bot-enterprise',
         name: 'FermWise Bot - Enterprise',
         description: 'Complete farm management system for large-scale operations',
         price: 75000, // in Naira
-        image: '/images/fermwise-bot-enterprise.jpg',
+        image: '/images/FermWise-bot-enterprise.jpg',
         features: [
             'All Pro Features',
             'Multiple Sensor Network',
@@ -195,14 +195,14 @@ export const ProductStore = ({ onOrderComplete }: ProductStoreProps) => {
                 currency: 'NGN',
                 payment_options: 'card,banktransfer,ussd',
                 customer: {
-                    email: user.email || 'customer@fermwise.com',
+                    email: user.email || 'customer@FermWise.com',
                     phone_number: user.phoneNumber || '',
                     name: user.displayName || 'Valued Customer',
                 },
                 customizations: {
                     title: 'FermWise Bot Purchase',
                     description: `Purchase of ${product.name}`,
-                    logo: 'https://fermwise.com/logo.png',
+                    logo: 'https://FermWise.com/logo.png',
                 },
             };
 

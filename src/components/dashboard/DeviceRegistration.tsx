@@ -133,7 +133,7 @@ export const DeviceRegistration = ({ onSubmit, onCancel, farmId }: DeviceRegistr
                         id: order.device_id,
                         name: order.product_name || 'IoT Device',
                         type: 'device',
-                        device_type: order.product_id?.includes('bot') ? 'Fermwise Bot' : 'Fermwise Bot',
+                        device_type: order.product_id?.includes('bot') ? 'FermWise Bot' : 'FermWise Bot',
                         order_id: order.id,
                         price: order.amount,
                         currency: order.currency

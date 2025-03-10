@@ -49,14 +49,13 @@ export const features = [
 export const pricingPlans = [
     {
         title: "Basic",
-        price: 5000,
-        period: "month",
+        price: 0,
+        period: "free",
         features: [
             "Real-time monitoring",
             "Basic analytics",
-            "Mobile app access",
-            "Community access",
-            "Email support"
+            "Networking",
+            "Marketplace",
         ]
     },
     {
@@ -68,7 +67,7 @@ export const pricingPlans = [
             "All Basic features",
             "AI-powered insights",
             "Advanced analytics",
-            "Priority support",
+            "Job posting ",
             "Market access",
             "Expert consultation"
         ]
@@ -80,10 +79,9 @@ export const pricingPlans = [
         features: [
             "All Pro features",
             "Custom integrations",
-            "Dedicated support",
-            "On-site training",
             "Custom analytics",
-            "Unlimited devices"
+            "Unlimited devices",
+            "Unlimited consultation"
         ]
     }
 ] 
