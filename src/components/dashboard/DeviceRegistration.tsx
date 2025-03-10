@@ -5,7 +5,7 @@ import { useAuthStore } from '../../stores/authStore'
 import { getUserOrders } from '../../services/firebaseService'
 import { collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '../../config/firebase'
-import jsQR from 'jsqr'
+import { Html5Qrcode } from 'html5-qrcode'
 
 // Add this interface to define the device data structure
 interface DeviceData {
@@ -68,11 +68,11 @@ export const DeviceRegistration = ({ onSubmit, onCancel, farmId }: DeviceRegistr
     const [isLoadingOrders, setIsLoadingOrders] = useState(false)
     const [scanError, setScanError] = useState<string | null>(null)
 
-    // Refs for QR code scanning
-    const videoRef = useRef<HTMLVideoElement>(null)
-    const canvasRef = useRef<HTMLCanvasElement>(null)
-    const streamRef = useRef<MediaStream | null>(null)
-    const scanIntervalRef = useRef<number | null>(null)
+    // Ref for QR scanner container
+    const scannerRef = useRef<HTMLDivElement>(null)
+
+    // Ref for the Html5Qrcode instance
+    const html5QrCodeRef = useRef<Html5Qrcode | null>(null)
 
     const { user } = useAuthStore()
 
@@ -86,19 +86,18 @@ export const DeviceRegistration = ({ onSubmit, onCancel, farmId }: DeviceRegistr
     // Cleanup function for QR scanner
     useEffect(() => {
         return () => {
-            // Stop the video stream when component unmounts
-            if (streamRef.current) {
-                streamRef.current.getTracks().forEach(track => track.stop());
-                streamRef.current = null;
-            }
-
-            // Clear the scanning interval
-            if (scanIntervalRef.current) {
-                clearInterval(scanIntervalRef.current);
-                scanIntervalRef.current = null;
-            }
+            stopScanner();
         };
     }, []);
+
+    const stopScanner = () => {
+        if (html5QrCodeRef.current) {
+            html5QrCodeRef.current.stop().catch(err => {
+                console.error("Failed to stop scanner:", err);
+            });
+            html5QrCodeRef.current = null;
+        }
+    };
 
     // Update the fetchRegisteredDevices function to check for device_id
     const fetchRegisteredDevices = async () => {
@@ -187,17 +186,8 @@ export const DeviceRegistration = ({ onSubmit, onCancel, farmId }: DeviceRegistr
     }
 
     const handleCancel = () => {
-        // Stop the video stream if it's running
-        if (streamRef.current) {
-            streamRef.current.getTracks().forEach(track => track.stop());
-            streamRef.current = null;
-        }
-
-        // Clear the scanning interval
-        if (scanIntervalRef.current) {
-            clearInterval(scanIntervalRef.current);
-            scanIntervalRef.current = null;
-        }
+        // Stop the scanner if it's running
+        stopScanner();
 
         setIsRegistering(false)
         setRegistrationMethod(null)
@@ -211,41 +201,63 @@ export const DeviceRegistration = ({ onSubmit, onCancel, farmId }: DeviceRegistr
         setIsScanning(true)
         setScanError(null)
 
+        // Make sure we have a container element
+        if (!scannerRef.current) {
+            setScanError('Scanner container not found');
+            setIsScanning(false);
+            return;
+        }
+
         try {
-            // Request camera access
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: "environment",
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 }
+            // Create a new Html5Qrcode instance
+            const html5QrCode = new Html5Qrcode("qr-reader");
+            html5QrCodeRef.current = html5QrCode;
+
+            // Start scanning
+            await html5QrCode.start(
+                { facingMode: "environment" }, // Use the back camera
+                {
+                    fps: 10, // Frames per second
+                    qrbox: { width: 250, height: 250 }, // QR box size
+                    aspectRatio: 1.0, // Square aspect ratio
+                    disableFlip: false, // Allow image flip
+                },
+                (decodedText) => {
+                    // On successful scan
+                    console.log(`QR Code detected: ${decodedText}`);
+
+                    // Play a success sound if available
+                    try {
+                        const audio = new Audio('/sounds/beep.mp3');
+                        audio.play().catch(e => console.log('Could not play success sound', e));
+                    } catch (e) {
+                        console.log('Sound not supported or not available');
+                    }
+
+                    // Stop the scanner
+                    html5QrCode.stop().then(() => {
+                        console.log('Scanner stopped');
+                        html5QrCodeRef.current = null;
+
+                        // Set the device ID from the QR code
+                        setDeviceId(decodedText);
+                        setIsScanning(false);
+                    }).catch(err => {
+                        console.error('Failed to stop scanner:', err);
+                    });
+                },
+                (errorMessage) => {
+                    // On error - we don't need to show these to the user
+                    console.log(`QR Code scanning error: ${errorMessage}`);
                 }
+            ).catch(err => {
+                console.error('Error starting scanner:', err);
+                setScanError('Failed to start the scanner. Please try again.');
+                setIsScanning(false);
             });
 
-            // Store the stream in the ref
-            streamRef.current = stream;
-
-            // Set the video source
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-
-                // Wait for video to be ready
-                videoRef.current.onloadedmetadata = () => {
-                    videoRef.current?.play().catch(err => {
-                        console.error('Error playing video:', err);
-                        setScanError('Could not start video stream. Please try again.');
-                    });
-
-                    // Start scanning for QR codes
-                    scanIntervalRef.current = window.setInterval(() => {
-                        scanQrCode();
-                    }, 200); // Scan every 200ms
-                };
-            } else {
-                throw new Error('Video element not found');
-            }
-
         } catch (err) {
-            console.error('Error accessing camera:', err);
+            console.error('Error setting up scanner:', err);
 
             // Provide more specific error messages
             if (err instanceof DOMException && err.name === 'NotAllowedError') {
@@ -259,115 +271,6 @@ export const DeviceRegistration = ({ onSubmit, onCancel, farmId }: DeviceRegistr
             }
 
             setIsScanning(false);
-        }
-    }
-
-    const scanQrCode = () => {
-        if (!videoRef.current || !canvasRef.current) {
-            return;
-        }
-
-        // Make sure video is ready
-        if (videoRef.current.readyState !== videoRef.current.HAVE_ENOUGH_DATA) {
-            return;
-        }
-
-        const video = videoRef.current;
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-
-        if (!ctx) {
-            console.error('Could not get canvas context');
-            return;
-        }
-
-        try {
-            // Set canvas dimensions to match video
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-
-            // Draw the current video frame to the canvas
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            // Get the image data from the canvas
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-            // Scan for QR code
-            const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                inversionAttempts: "dontInvert",
-            });
-
-            // If a QR code is found
-            if (code) {
-                console.log("QR code detected:", code.data);
-
-                // Validate the QR code data
-                if (!code.data || code.data.trim() === '') {
-                    console.warn('Empty QR code detected, continuing scanning...');
-                    return;
-                }
-
-                // Draw a green border around the QR code for visual feedback
-                if (code.location) {
-                    // Draw the outline
-                    ctx.lineWidth = 4;
-                    ctx.strokeStyle = "#00FF00";
-
-                    // Draw the corners
-                    ctx.beginPath();
-                    ctx.moveTo(code.location.topLeftCorner.x, code.location.topLeftCorner.y);
-                    ctx.lineTo(code.location.topRightCorner.x, code.location.topRightCorner.y);
-                    ctx.lineTo(code.location.bottomRightCorner.x, code.location.bottomRightCorner.y);
-                    ctx.lineTo(code.location.bottomLeftCorner.x, code.location.bottomLeftCorner.y);
-                    ctx.lineTo(code.location.topLeftCorner.x, code.location.topLeftCorner.y);
-                    ctx.stroke();
-
-                    // Add a small delay to show the green border before stopping the scanner
-                    setTimeout(() => {
-                        // Stop scanning
-                        if (streamRef.current) {
-                            streamRef.current.getTracks().forEach(track => track.stop());
-                            streamRef.current = null;
-                        }
-
-                        if (scanIntervalRef.current) {
-                            clearInterval(scanIntervalRef.current);
-                            scanIntervalRef.current = null;
-                        }
-
-                        // Set the device ID from the QR code
-                        setDeviceId(code.data);
-                        setIsScanning(false);
-
-                        // Play a success sound if available
-                        try {
-                            const audio = new Audio('/sounds/beep.mp3');
-                            audio.play().catch(e => console.log('Could not play success sound', e));
-                        } catch (e) {
-                            console.log('Sound not supported or not available');
-                        }
-                    }, 500); // 500ms delay to show the green border
-                } else {
-                    // If no location data, just stop scanning immediately
-                    // Stop scanning
-                    if (streamRef.current) {
-                        streamRef.current.getTracks().forEach(track => track.stop());
-                        streamRef.current = null;
-                    }
-
-                    if (scanIntervalRef.current) {
-                        clearInterval(scanIntervalRef.current);
-                        scanIntervalRef.current = null;
-                    }
-
-                    // Set the device ID from the QR code
-                    setDeviceId(code.data);
-                    setIsScanning(false);
-                }
-            }
-        } catch (err) {
-            console.error('Error scanning QR code:', err);
-            // Continue scanning despite errors
         }
     }
 
@@ -529,30 +432,12 @@ export const DeviceRegistration = ({ onSubmit, onCancel, farmId }: DeviceRegistr
                 >
                     {isScanning ? (
                         <div className="flex flex-col items-center gap-4 w-full max-w-md">
-                            <div className="w-full aspect-square max-w-xs border-4 border-primary relative overflow-hidden rounded-lg">
-                                {/* Hidden canvas for processing video frames */}
-                                <canvas ref={canvasRef} className="hidden"></canvas>
+                            <div
+                                ref={scannerRef}
+                                id="qr-reader"
+                                className="w-full max-w-xs aspect-square"
+                            ></div>
 
-                                {/* Video element for camera feed */}
-                                <video
-                                    ref={videoRef}
-                                    className="absolute inset-0 w-full h-full object-cover"
-                                    playsInline
-                                    muted
-                                    autoPlay
-                                ></video>
-
-                                {/* Scanning animation */}
-                                <div className="absolute inset-0 bg-primary/10 flex items-center justify-center pointer-events-none">
-                                    <div className="w-full h-1 bg-primary absolute animate-scan"></div>
-                                </div>
-
-                                {/* Targeting corners for better UX */}
-                                <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary"></div>
-                                <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary"></div>
-                                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary"></div>
-                                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary"></div>
-                            </div>
                             <p className="text-center font-medium">Position the QR code within the frame</p>
 
                             {scanError && (
@@ -591,7 +476,7 @@ export const DeviceRegistration = ({ onSubmit, onCancel, farmId }: DeviceRegistr
                                         className="input input-bordered w-full"
                                         value={deviceName}
                                         onChange={(e) => setDeviceName(e.target.value)}
-                                        placeholder="e.g. Maize farm device"
+                                        placeholder="e.g. Soil Sensor A1"
                                     />
                                 </div>
 
@@ -616,7 +501,7 @@ export const DeviceRegistration = ({ onSubmit, onCancel, farmId }: DeviceRegistr
                                         className="input input-bordered w-full"
                                         value={location}
                                         onChange={(e) => setLocation(e.target.value)}
-                                        placeholder="e.g. 31, Adeyemi Street, Ojota, Lagos"
+                                        placeholder="e.g. Section A"
                                     />
                                 </div>
 
