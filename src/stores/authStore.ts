@@ -24,14 +24,10 @@ interface AuthState {
     clearError: () => void
     setUser: (user: User | null) => void
     setLoading: (loading: boolean) => void
+    initAuth: () => () => void
 }
 
 export const useAuthStore = create<AuthState>((set) => {
-    // Set up auth state listener
-    onAuthStateChanged(auth, (user) => {
-        set({ user, loading: false })
-    })
-
     return {
         user: null,
         loading: true,
@@ -39,10 +35,20 @@ export const useAuthStore = create<AuthState>((set) => {
         setUser: (user) => set({ user }),
         setLoading: (loading) => set({ loading }),
 
+        // Initialize auth state listener
+        initAuth: () => {
+            // Set up auth state listener and return unsubscribe function
+            const unsubscribe = onAuthStateChanged(auth, (user) => {
+                set({ user: user as User | null, loading: false })
+            })
+            return unsubscribe
+        },
+
         login: async (email: string, password: string) => {
             try {
                 set({ loading: true, error: null })
                 await signInWithEmailAndPassword(auth, email, password)
+                // Loading will be set to false by the onAuthStateChanged listener
             } catch (error) {
                 set({ error: (error as Error).message, loading: false })
                 throw error
@@ -68,10 +74,11 @@ export const useAuthStore = create<AuthState>((set) => {
 
         logout: async () => {
             try {
+                set({ loading: true })
                 await firebaseSignOut(auth)
-                set({ user: null })
+                // User will be set to null by the onAuthStateChanged listener
             } catch (error) {
-                set({ error: (error as Error).message })
+                set({ error: (error as Error).message, loading: false })
                 throw error
             }
         },

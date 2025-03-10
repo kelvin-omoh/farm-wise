@@ -18,7 +18,7 @@ import { images } from '../constants/images'
 import GridBackground from '../components/GridBackground'
 import { addDoc, collection, Timestamp } from 'firebase/firestore'
 import { db } from '../config/firebase'
-import logo from "../assets/logo.jpeg"
+import logo from "/logo1.jpeg"
 import { Link } from 'react-router-dom'
 
 const Landing = () => {
@@ -259,13 +259,13 @@ const Landing = () => {
                 {/* Hero Section */}
                 <Section className="relative min-h-screen flex items-center pt-20 pb-20">
                     <GridBackground />
-                    <div className="relative z-10 grid lg:grid-cols-2 gap-12 items-center">
+                    <div className="relative z-10 grid md:mt-0 mt-[3rem] lg:grid-cols-2 gap-12 items-center">
                         <motion.div
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.6 }}
                         >
-                            <h1 className="heading-1 mb-6">
+                            <h1 className="text-4xl font-bold md:text-6xl mb-6">
                                 Transform Your Farm with Smart Technology
                             </h1>
                             <p className="text-xl text-gray-600 mb-8">
@@ -379,9 +379,9 @@ const Landing = () => {
                                     <img
                                         src={logo}
                                         alt="FermWise Logo"
-                                        className="w-8 h-8 object-contain"
+                                        className=" md:w-[8rem] md:h-[8rem] w-[8rem] h-[8rem] object-contain"
                                     />
-                                    <span className="font-ivy text-2xl font-bold">FermWise</span>
+                                    {/* <span className="font-ivy text-2xl font-bold">FermWise</span> */}
                                 </div>
                                 <p className="text-gray-400">
                                     Transforming Nigerian agriculture with smart technology

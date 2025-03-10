@@ -30,7 +30,7 @@ const products: Product[] = [
         id: 'FermWise-bot-basic',
         name: 'FermWise Bot - Basic',
         description: 'Complete AI-powered farming solution with basic sensors for small farms',
-        price: 25000, // in Naira
+        price: 125000, // in Naira
         image: '/images/FermWise-bot-basic.jpg',
         features: [
             'Temperature & Humidity Sensors',
@@ -45,7 +45,7 @@ const products: Product[] = [
         id: 'FermWise-bot-pro',
         name: 'FermWise Bot - Pro',
         description: 'Advanced farming solution with premium sensors and extended AI capabilities',
-        price: 45000, // in Naira
+        price: 150000, // in Naira
         image: '/images/FermWise-bot-pro.jpg',
         features: [
             'All Basic Features',
@@ -62,7 +62,7 @@ const products: Product[] = [
         id: 'FermWise-bot-enterprise',
         name: 'FermWise Bot - Enterprise',
         description: 'Complete farm management system for large-scale operations',
-        price: 75000, // in Naira
+        price: 175000, // in Naira
         image: '/images/FermWise-bot-enterprise.jpg',
         features: [
             'All Pro Features',

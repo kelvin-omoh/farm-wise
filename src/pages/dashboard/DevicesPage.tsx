@@ -23,6 +23,7 @@ import { User as FirebaseUser } from 'firebase/auth'
 import { getDevices } from '../../services/firebaseService'
 import { DeviceList } from '../../components/dashboard/DeviceList'
 import { Modal } from '../../components/ui/Modal'
+import QRCodeGenerator from '../../components/dashboard/QRCodeGenerator'
 
 // Add this interface to define the device data structure
 interface DeviceData {
@@ -523,6 +524,9 @@ const DevicesPage = () => {
 
             {/* Device Health */}
             <DeviceHealth />
+
+            {/* QR Code Generator for Testing */}
+            {process.env.NODE_ENV === 'development' && <QRCodeGenerator />}
 
             {/* Success message */}
             {addSuccess && (

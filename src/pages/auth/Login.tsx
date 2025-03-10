@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { FaArrowLeft } from 'react-icons/fa'
 import { useAuthStore } from '../../stores/authStore'
@@ -8,8 +8,18 @@ const Login = () => {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [errorMessage, setErrorMessage] = useState('')
-    const { login, loading } = useAuthStore()
+    const { login, loading, user } = useAuthStore()
     const navigate = useNavigate()
+    const location = useLocation()
+
+    // Redirect if user is already logged in
+    useEffect(() => {
+        if (user && !loading) {
+            // Redirect to the page they were trying to access, or dashboard as default
+            const from = location.state?.from?.pathname || '/dashboard'
+            navigate(from, { replace: true })
+        }
+    }, [user, loading, navigate, location])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -17,7 +27,7 @@ const Login = () => {
 
         try {
             await login(email, password)
-            navigate('/dashboard')
+            // Navigation will be handled by the useEffect when user state updates
         } catch (error: any) {
             // Customize error messages based on Firebase error codes
             if (error.code === 'auth/user-not-found') {

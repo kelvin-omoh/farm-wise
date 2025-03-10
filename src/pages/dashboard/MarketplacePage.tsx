@@ -50,8 +50,8 @@ const MarketplacePage = () => {
         }
     };
 
-    const formatDate = (timestamp: Timestamp) => {
-        if (!timestamp) return 'Unknown';
+    const formatDate = (timestamp: Timestamp | undefined) => {
+        if (!timestamp || !timestamp.seconds) return 'Unknown';
         return new Date(timestamp.seconds * 1000).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
@@ -61,7 +61,7 @@ const MarketplacePage = () => {
         });
     };
 
-    const getStatusBadge = (status: string) => {
+    const getStatusBadge = (status: string | undefined) => {
         switch (status) {
             case 'completed':
                 return <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Completed</span>;
@@ -179,13 +179,13 @@ const MarketplacePage = () => {
                                     {orders.map((order) => (
                                         <tr key={order.id} className="hover:bg-gray-50">
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {order.payment_reference}
+                                                {order.payment_reference || 'N/A'}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm font-medium text-gray-900">{order.product_name}</div>
+                                                <div className="text-sm font-medium text-gray-900">{order.product_name || 'Unknown Product'}</div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">₦{order.amount.toLocaleString()}</div>
+                                                <div className="text-sm text-gray-900">₦{order.amount ? order.amount.toLocaleString() : '0'}</div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 {formatDate(order.created_at)}

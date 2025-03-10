@@ -102,6 +102,16 @@ export default {
             backgroundSize: {
                 'grid': '4rem 4rem',
             },
+            keyframes: {
+                scan: {
+                    '0%': { transform: 'translateY(0%)' },
+                    '50%': { transform: 'translateY(100%)' },
+                    '100%': { transform: 'translateY(0%)' }
+                }
+            },
+            animation: {
+                'scan': 'scan 2s ease-in-out infinite',
+            }
         },
     },
     plugins: [require("daisyui")],
