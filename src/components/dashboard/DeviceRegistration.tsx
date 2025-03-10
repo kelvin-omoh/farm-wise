@@ -214,7 +214,11 @@ export const DeviceRegistration = ({ onSubmit, onCancel, farmId }: DeviceRegistr
         try {
             // Request camera access
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: "environment" }
+                video: {
+                    facingMode: "environment",
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                }
             });
 
             // Store the stream in the ref
@@ -223,23 +227,48 @@ export const DeviceRegistration = ({ onSubmit, onCancel, farmId }: DeviceRegistr
             // Set the video source
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
-                videoRef.current.play();
-            }
 
-            // Start scanning for QR codes
-            scanIntervalRef.current = window.setInterval(() => {
-                scanQrCode();
-            }, 200); // Scan every 200ms
+                // Wait for video to be ready
+                videoRef.current.onloadedmetadata = () => {
+                    videoRef.current?.play().catch(err => {
+                        console.error('Error playing video:', err);
+                        setScanError('Could not start video stream. Please try again.');
+                    });
+
+                    // Start scanning for QR codes
+                    scanIntervalRef.current = window.setInterval(() => {
+                        scanQrCode();
+                    }, 200); // Scan every 200ms
+                };
+            } else {
+                throw new Error('Video element not found');
+            }
 
         } catch (err) {
             console.error('Error accessing camera:', err);
-            setScanError('Could not access camera. Please check permissions and try again.');
+
+            // Provide more specific error messages
+            if (err instanceof DOMException && err.name === 'NotAllowedError') {
+                setScanError('Camera access denied. Please allow camera access and try again.');
+            } else if (err instanceof DOMException && err.name === 'NotFoundError') {
+                setScanError('No camera found. Please make sure your device has a camera.');
+            } else if (err instanceof DOMException && err.name === 'NotReadableError') {
+                setScanError('Camera is in use by another application. Please close other apps using the camera.');
+            } else {
+                setScanError('Could not access camera. Please check permissions and try again.');
+            }
+
             setIsScanning(false);
         }
     }
 
     const scanQrCode = () => {
-        if (!videoRef.current || !canvasRef.current || videoRef.current.readyState !== videoRef.current.HAVE_ENOUGH_DATA) {
+        if (!videoRef.current || !canvasRef.current) {
+            return;
+        }
+
+        // Make sure video is ready
+        if (videoRef.current.readyState !== videoRef.current.HAVE_ENOUGH_DATA) {
             return;
         }
 
@@ -247,41 +276,63 @@ export const DeviceRegistration = ({ onSubmit, onCancel, farmId }: DeviceRegistr
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
 
-        if (!ctx) return;
+        if (!ctx) {
+            console.error('Could not get canvas context');
+            return;
+        }
 
-        // Set canvas dimensions to match video
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        try {
+            // Set canvas dimensions to match video
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
 
-        // Draw the current video frame to the canvas
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            // Draw the current video frame to the canvas
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        // Get the image data from the canvas
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            // Get the image data from the canvas
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-        // Scan for QR code
-        const code = jsQR(imageData.data, imageData.width, imageData.height, {
-            inversionAttempts: "dontInvert",
-        });
+            // Scan for QR code
+            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                inversionAttempts: "dontInvert",
+            });
 
-        // If a QR code is found
-        if (code) {
-            console.log("QR code detected:", code.data);
+            // If a QR code is found
+            if (code) {
+                console.log("QR code detected:", code.data);
 
-            // Stop scanning
-            if (streamRef.current) {
-                streamRef.current.getTracks().forEach(track => track.stop());
-                streamRef.current = null;
+                // Validate the QR code data
+                if (!code.data || code.data.trim() === '') {
+                    console.warn('Empty QR code detected, continuing scanning...');
+                    return;
+                }
+
+                // Stop scanning
+                if (streamRef.current) {
+                    streamRef.current.getTracks().forEach(track => track.stop());
+                    streamRef.current = null;
+                }
+
+                if (scanIntervalRef.current) {
+                    clearInterval(scanIntervalRef.current);
+                    scanIntervalRef.current = null;
+                }
+
+                // Set the device ID from the QR code
+                setDeviceId(code.data);
+                setIsScanning(false);
+
+                // Play a success sound if available
+                try {
+                    const audio = new Audio('/sounds/beep.mp3');
+                    audio.play().catch(e => console.log('Could not play success sound', e));
+                } catch (e) {
+                    console.log('Sound not supported or not available');
+                }
             }
-
-            if (scanIntervalRef.current) {
-                clearInterval(scanIntervalRef.current);
-                scanIntervalRef.current = null;
-            }
-
-            // Set the device ID from the QR code
-            setDeviceId(code.data);
-            setIsScanning(false);
+        } catch (err) {
+            console.error('Error scanning QR code:', err);
+            // Continue scanning despite errors
         }
     }
 
@@ -439,11 +490,11 @@ export const DeviceRegistration = ({ onSubmit, onCancel, farmId }: DeviceRegistr
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex flex-col items-center gap-6 py-8"
+                    className="flex flex-col items-center gap-6 py-8 w-full"
                 >
                     {isScanning ? (
-                        <div className="flex flex-col items-center gap-4">
-                            <div className="w-64 h-64 border-4 border-primary relative overflow-hidden">
+                        <div className="flex flex-col items-center gap-4 w-full max-w-md">
+                            <div className="w-full aspect-square max-w-xs border-4 border-primary relative overflow-hidden rounded-lg">
                                 {/* Hidden canvas for processing video frames */}
                                 <canvas ref={canvasRef} className="hidden"></canvas>
 
@@ -453,21 +504,30 @@ export const DeviceRegistration = ({ onSubmit, onCancel, farmId }: DeviceRegistr
                                     className="absolute inset-0 w-full h-full object-cover"
                                     playsInline
                                     muted
+                                    autoPlay
                                 ></video>
 
                                 {/* Scanning animation */}
                                 <div className="absolute inset-0 bg-primary/10 flex items-center justify-center pointer-events-none">
-                                    <div className="w-full h-1 bg-primary absolute animate-[scan_2s_ease-in-out_infinite]"></div>
+                                    <div className="w-full h-1 bg-primary absolute animate-scan"></div>
                                 </div>
+
+                                {/* Targeting corners for better UX */}
+                                <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary"></div>
+                                <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary"></div>
+                                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary"></div>
+                                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary"></div>
                             </div>
-                            <p className="text-center">Position the QR code within the frame</p>
+                            <p className="text-center font-medium">Position the QR code within the frame</p>
 
                             {scanError && (
-                                <div className="text-error text-sm mt-2">{scanError}</div>
+                                <div className="text-error text-sm mt-2 text-center bg-error-light bg-opacity-20 p-3 rounded-lg">
+                                    {scanError}
+                                </div>
                             )}
 
                             {process.env.NODE_ENV === 'development' && (
-                                <div className="text-sm text-primary mt-2 text-center">
+                                <div className="text-sm text-primary mt-2 text-center bg-primary-50 p-3 rounded-lg">
                                     <p>Testing in development mode:</p>
                                     <p>Scroll down to use the QR Code Generator to create a test QR code.</p>
                                 </div>
@@ -475,7 +535,7 @@ export const DeviceRegistration = ({ onSubmit, onCancel, farmId }: DeviceRegistr
 
                             <button
                                 onClick={handleCancel}
-                                className="btn btn-ghost btn-sm mt-2"
+                                className="btn btn-outline btn-sm mt-2"
                             >
                                 Cancel Scanning
                             </button>
@@ -500,7 +560,7 @@ export const DeviceRegistration = ({ onSubmit, onCancel, farmId }: DeviceRegistr
                                     />
                                 </div>
 
-                                {/* <div>
+                                <div>
                                     <label className="label">Device Type</label>
                                     <select
                                         className="select select-bordered w-full"
@@ -512,7 +572,7 @@ export const DeviceRegistration = ({ onSubmit, onCancel, farmId }: DeviceRegistr
                                         <option value="irrigation_controller">Irrigation Controller</option>
                                         <option value="livestock_tracker">Livestock Tracker</option>
                                     </select>
-                                </div> */}
+                                </div>
 
                                 <div>
                                     <label className="label">Location</label>
@@ -579,7 +639,7 @@ export const DeviceRegistration = ({ onSubmit, onCancel, farmId }: DeviceRegistr
                             />
                         </div>
 
-                        {/* <div>
+                        <div>
                             <label className="label">Device Type</label>
                             <select
                                 className="select select-bordered w-full"
@@ -591,7 +651,7 @@ export const DeviceRegistration = ({ onSubmit, onCancel, farmId }: DeviceRegistr
                                 <option value="irrigation_controller">Irrigation Controller</option>
                                 <option value="livestock_tracker">Livestock Tracker</option>
                             </select>
-                        </div> */}
+                        </div>
 
                         <div>
                             <label className="label">Location</label>
