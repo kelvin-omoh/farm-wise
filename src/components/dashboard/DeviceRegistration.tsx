@@ -307,27 +307,62 @@ export const DeviceRegistration = ({ onSubmit, onCancel, farmId }: DeviceRegistr
                     return;
                 }
 
-                // Stop scanning
-                if (streamRef.current) {
-                    streamRef.current.getTracks().forEach(track => track.stop());
-                    streamRef.current = null;
-                }
+                // Draw a green border around the QR code for visual feedback
+                if (code.location) {
+                    // Draw the outline
+                    ctx.lineWidth = 4;
+                    ctx.strokeStyle = "#00FF00";
 
-                if (scanIntervalRef.current) {
-                    clearInterval(scanIntervalRef.current);
-                    scanIntervalRef.current = null;
-                }
+                    // Draw the corners
+                    ctx.beginPath();
+                    ctx.moveTo(code.location.topLeftCorner.x, code.location.topLeftCorner.y);
+                    ctx.lineTo(code.location.topRightCorner.x, code.location.topRightCorner.y);
+                    ctx.lineTo(code.location.bottomRightCorner.x, code.location.bottomRightCorner.y);
+                    ctx.lineTo(code.location.bottomLeftCorner.x, code.location.bottomLeftCorner.y);
+                    ctx.lineTo(code.location.topLeftCorner.x, code.location.topLeftCorner.y);
+                    ctx.stroke();
 
-                // Set the device ID from the QR code
-                setDeviceId(code.data);
-                setIsScanning(false);
+                    // Add a small delay to show the green border before stopping the scanner
+                    setTimeout(() => {
+                        // Stop scanning
+                        if (streamRef.current) {
+                            streamRef.current.getTracks().forEach(track => track.stop());
+                            streamRef.current = null;
+                        }
 
-                // Play a success sound if available
-                try {
-                    const audio = new Audio('/sounds/beep.mp3');
-                    audio.play().catch(e => console.log('Could not play success sound', e));
-                } catch (e) {
-                    console.log('Sound not supported or not available');
+                        if (scanIntervalRef.current) {
+                            clearInterval(scanIntervalRef.current);
+                            scanIntervalRef.current = null;
+                        }
+
+                        // Set the device ID from the QR code
+                        setDeviceId(code.data);
+                        setIsScanning(false);
+
+                        // Play a success sound if available
+                        try {
+                            const audio = new Audio('/sounds/beep.mp3');
+                            audio.play().catch(e => console.log('Could not play success sound', e));
+                        } catch (e) {
+                            console.log('Sound not supported or not available');
+                        }
+                    }, 500); // 500ms delay to show the green border
+                } else {
+                    // If no location data, just stop scanning immediately
+                    // Stop scanning
+                    if (streamRef.current) {
+                        streamRef.current.getTracks().forEach(track => track.stop());
+                        streamRef.current = null;
+                    }
+
+                    if (scanIntervalRef.current) {
+                        clearInterval(scanIntervalRef.current);
+                        scanIntervalRef.current = null;
+                    }
+
+                    // Set the device ID from the QR code
+                    setDeviceId(code.data);
+                    setIsScanning(false);
                 }
             }
         } catch (err) {
