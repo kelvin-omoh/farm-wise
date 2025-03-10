@@ -140,7 +140,7 @@ const Landing = () => {
                                 <motion.div whileHover={{ scale: 1.05 }}>
                                     <button
                                         onClick={() => setShowWaitlistModal(true)}
-                                        className="px-6 py-2.5 bg-primary text-white rounded-full hover:bg-primary-dark transition-colors flex items-center gap-2"
+                                        className="px-3 py-1.5 bg-primary text-white rounded-full hover:bg-primary-dark text-[12px] transition-colors flex items-center gap-2"
                                     >
                                         Join Waitlist
                                         <FaArrowRight className="w-4 h-4" />
